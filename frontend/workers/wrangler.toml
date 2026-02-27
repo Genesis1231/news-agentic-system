@@ -1,0 +1,8 @@
+name = "burst-api"
+main = "src/index.js"
+compatibility_date = "2023-12-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "burstdb"
+database_id = "23f702b5-3b3d-49ac-91bb-4844899f6ed6"

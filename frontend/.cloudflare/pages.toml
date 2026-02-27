@@ -1,0 +1,11 @@
+# Configuration for Cloudflare Pages
+
+[build]
+  command = "npm install && npm run pages:deploy"
+  publish = "dist"
+  node_version = "20"
+
+[build.environment]
+  NODE_VERSION = "20"
+  CF_PAGES_DEPLOY_WRANGLER = "false"
+  CF_PAGES_DEPLOYMENT_TYPE = "static"

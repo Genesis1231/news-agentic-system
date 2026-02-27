@@ -1,0 +1,14 @@
+{
+  "name": "burst-api",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers API for burst.fm",
+  "main": "src/index.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

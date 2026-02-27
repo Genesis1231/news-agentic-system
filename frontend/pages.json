@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "burst-fm-frontend",
+  "builds": [
+    {
+      "src": "dist/**/*",
+      "use": "@cloudflare/static-site"
+    }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}

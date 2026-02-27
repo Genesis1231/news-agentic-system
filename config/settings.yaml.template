@@ -1,0 +1,48 @@
+# config settings v0.2
+
+app:
+  name: [name of the channel]
+  description: description of the channel
+  audience: [audience of the channel]
+  url: [url of the channel]
+  debug_mode: [True/False]
+
+database:
+  host: [host of the database]
+  port: [port of the database]
+  username: [username of the database]
+  password: [password of the database]
+  database: [database of the database]
+
+directory:
+  download: data/download
+  media: data/raw
+  output: [path to the output directory]
+
+redis:
+  host: localhost
+  port: 6379
+  lifetime: 3600 * 24 # 1 day
+  timeout: 5
+  database: 
+    main: 5
+    monitor: 15
+
+apify:
+  actor_twitter: CJdippxWmn9uRfooo
+  concurrency: 10
+  batch_size: 5
+
+TTS:
+  media_folder: data/audio
+  generator:
+    platform: ElevenLabs
+    model: eleven_flash_v2
+    language: en
+    voice: [ElevenLabs voice ID]
+
+auth:
+  username: [username of the dashboard]
+  password: [password of the dashboard]
+
+

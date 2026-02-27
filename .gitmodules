@@ -1,0 +1,4 @@
+[submodule "backend/utils/weibo_crawler"]
+	path = backend/utils/weibo_crawler
+	url = https://github.com/Genesis1231/weibo-crawler.git
+	branch = master
