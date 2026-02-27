@@ -1,24 +1,6 @@
 import React, { useState } from 'react';
 import { Mic } from 'lucide-react';
-
-const BurstLogo = () => (
-  <svg viewBox="0 0 40 40" className="w-6 h-6">
-    <g fill="url(#gradient)">
-      <rect x="4" y="16" width="4" height="8" rx="1" />
-      <rect x="10" y="12" width="4" height="16" rx="1" />
-      <rect x="16" y="8" width="4" height="24" rx="1" />
-      <rect x="22" y="4" width="4" height="32" rx="1" />
-      <rect x="28" y="12" width="4" height="16" rx="1" />
-      <rect x="34" y="16" width="4" height="8" rx="1" />
-    </g>
-    <defs>
-      <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#8B5CF6' }} />
-        <stop offset="100%" style={{ stopColor: '#EC4899' }} />
-      </linearGradient>
-    </defs>
-  </svg>
-);
+import BurstLogo from '../components/BurstLogo';
 
 const HomePage = () => {
   const [email, setEmail] = useState('');
@@ -53,9 +35,11 @@ const HomePage = () => {
         {/* Navigation */}
         <nav className="container mx-auto py-8">
           <div className="max-w-5xl mx-auto px-8">
-            <div className="flex items-baseline antialiased">
-              <span className="text-2xl font-medium tracking-tight text-zinc-100">burst</span>
-              <span className="text-2xl font-normal tracking-tight text-zinc-500">.fm</span>
+            <div className="flex items-center gap-3">
+              <BurstLogo size={30} />
+              <div className="flex items-baseline antialiased">
+                <span className="text-2xl font-semibold tracking-tight text-white-100">burst.fm</span>
+              </div>
             </div>
           </div>
         </nav>
@@ -95,7 +79,7 @@ const HomePage = () => {
                   />
                   <button
                     type="submit"
-                    className="absolute right-2 top-2 bottom-2 px-6 bg-blue-500 text-white rounded-xl font-normal hover:bg-blue-600 transition-all duration-300"
+                    className="absolute right-2 top-2 bottom-2 px-6 bg-[#7C3AED] text-white rounded-xl font-normal hover:bg-[#6D28D9] transition-all duration-300"
                   >
                     Get Early Access
                   </button>
