@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mic } from 'lucide-react';
+import { Mic, Newspaper, Cpu } from 'lucide-react';
 import BurstLogo from '../components/BurstLogo';
 
 const HomePage = () => {
@@ -36,7 +36,7 @@ const HomePage = () => {
         <nav className="container mx-auto py-8">
           <div className="max-w-5xl mx-auto px-8">
             <div className="flex items-center gap-3">
-              <BurstLogo size={30} />
+              <BurstLogo size={28} />
               <div className="flex items-baseline antialiased">
                 <span className="text-2xl font-semibold tracking-tight text-white-100">burst.fm</span>
               </div>
@@ -79,7 +79,7 @@ const HomePage = () => {
                   />
                   <button
                     type="submit"
-                    className="absolute right-2 top-2 bottom-2 px-6 bg-[#7C3AED] text-white rounded-xl font-normal hover:bg-[#6D28D9] transition-all duration-300"
+                    className="absolute right-2 top-2 bottom-2 px-6 bg-[#7C3AED] text-white rounded-xl font-medium hover:bg-[#6D28D9] transition-all duration-300"
                   >
                     Get Early Access
                   </button>
@@ -107,12 +107,12 @@ const HomePage = () => {
                   description: "Real-time reporting and analysis of tech news across all time zones. Never miss a beat in the future of technology."
                 },
                 {
-                  icon: <div className="text-lg font-semibold">AI</div>,
+                  icon: <Cpu className="w-6 h-6" />,
                   title: "AI-Powered Insights",
                   description: "Uncover unique perspectives through AI. Understand emerging trends and shape your vision for tomorrow."
                 },
                 {
-                  icon: <BurstLogo />,
+                  icon: <Newspaper className="w-6 h-6" />,
                   title: "Trustworthy News",
                   description: "Decode complex tech news from the most reliable sources. Cut through the noise and focus on what truly matters."
                 }

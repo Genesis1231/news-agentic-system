@@ -1,4 +1,4 @@
-const BurstLogo = ({ size = 28 }) => {
+const BurstLogo = ({ size = 30 }) => {
   const cx = 8; // vertical center
   const bars = [
     { x: 0,  h: 7  },
@@ -13,7 +13,7 @@ const BurstLogo = ({ size = 28 }) => {
         <rect
           key={i}
           x={bar.x}
-          y={cx - bar.h / 2 +1}
+          y={cx - bar.h / 2 + 1}
           width="4"
           height={bar.h}
           rx="2"
