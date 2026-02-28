@@ -44,7 +44,7 @@ def render_panel(redis_client: Redis, logout_callback=None) -> None:
         st.divider()
         
         # Refresh button at bottom of sidebar
-        if st.button("⟳ Refresh Data", use_container_width=True, key='sidebar_refresh', type='primary'):
+        if st.button("⟳ Refresh Data", width='stretch', key='sidebar_refresh', type='primary'):
             # Clear cache to force refresh
             st.cache_data.clear()
             try:

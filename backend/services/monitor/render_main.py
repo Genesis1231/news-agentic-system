@@ -106,7 +106,7 @@ def render_trend_chart(news_data: pd.DataFrame) -> None:
     )
 
     if chart:
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(chart, width='stretch')
 
 
 def render_metrics_section(filtered_data: pd.DataFrame) -> None:

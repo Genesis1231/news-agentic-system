@@ -24,7 +24,8 @@ class MediaDownloader:
         """Initialize the MediaDownloader."""
 
         self.session = ClientSession(
-            timeout=ClientTimeout(total=timeout, connect=10)
+            timeout=ClientTimeout(total=timeout, connect=10),
+            trust_env=True,  # respect https_proxy / http_proxy env vars
         )
         self.retries = retries
 
@@ -33,6 +34,12 @@ class MediaDownloader:
 
         return {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+            'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            "Sec-Ch-Ua": '"Not(A:Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+            "Referer": "https://www.google.com/",
         }
     
     async def download_media(self, url: str | List[str], media_id: str) -> List[str] | str :
@@ -62,7 +69,7 @@ class MediaDownloader:
         for attempt in range(self.retries):
             try:
 
-                async with self.session.get(url) as response:
+                async with self.session.get(url, headers=self.get_headers()) as response:
                     response.raise_for_status()
 
                     total_size = int(response.headers.get("content-length", 0))
@@ -106,15 +113,16 @@ class MediaDownloader:
                     logger.debug(f"Downloaded media {url} (size: {filename.stat().st_size / 1024:.1f} KB)")
                     return str(filename)
 
-            except ClientError as e:
+            except (ClientError, asyncio.TimeoutError) as e:
                 logger.warning(f"Attempt {attempt + 1}/{self.retries} for {url} failed: {e}")
                 if attempt + 1 < self.retries:
-                    await asyncio.sleep(attempt + 3)
+                    await asyncio.sleep(2 ** attempt)  # exponential backoff: 1s, 2s, 4s
                 else:
-                    logger.error(f"All {self.retries} retries failed. return original url")
-                
+                    logger.error(f"All {self.retries} retries failed for {url}, returning original url")
+
             except Exception as e:
-                logger.error(f"An unexpected error occurred while downloading {url}: {e}")
+                logger.error(f"Unexpected error downloading {url}: {e}")
+                break
         
         return url
 
