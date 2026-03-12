@@ -32,7 +32,7 @@ class RawNewsDB(BaseDB):
     
     # Classification fields
     news_category: Mapped[List[str]] = mapped_column(JSON, default=list)
-    geolocation: Mapped[List[str]] = mapped_column(JSON, default=list)
+    news_type: Mapped[List[str]] = mapped_column(JSON, default=list)
     sentiment: Mapped[str] = mapped_column(String(16), default="NEUTRAL")
     entities: Mapped[List[str]] = mapped_column(JSON, default=list)
     source_level: Mapped[str] = mapped_column(String(16), default="TERTIARY")

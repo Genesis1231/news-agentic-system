@@ -23,12 +23,13 @@ Analyze and classify the provided content to support news editorial process.
       Provide the telegraphic analysis for your classification, highlighting the key factors that influenced the decisions.
 
    - 'news_category': 
-      * Select one or more categories from the provided 'news_category' enum list.
-      * Use ["OTHER"] only when no listed categories fit the content.
+      - Select one or more categories from the provided 'news_category' enum list.
+      - Use ["OTHER"] only when no listed categories fit the content.
 
-   - 'geolocation': 
-      * Select one or more locations from the provided 'geolocation' enum list.
-      * Use ["GLOBAL"] when no listed geolocation match the content.
+   - 'news_type':
+      - Only select types from the provided 'news_type' list.
+      - Assign multiple types if necessary but ensure they are directly relevant to the content.
+      - Use "OTHER" as a type when the content does not fit any predefined news types.
 
    - 'relevance': 
       - Determine how relevant the content related to the target audience's core interests. 

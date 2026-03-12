@@ -99,7 +99,7 @@ def render_trend_chart(news_data: pd.DataFrame) -> None:
     )
 
     if chart:
-        st.altair_chart(chart, width='stretch')
+        st.altair_chart(chart, use_container_width=True)
 
 
 def render_metrics_section(filtered_data: pd.DataFrame) -> None:
@@ -133,7 +133,7 @@ def render_metrics_section(filtered_data: pd.DataFrame) -> None:
         else:
             top_source = "N/A"
             top_source_count = 0
-        st.metric(label="Top Source", value=f"{top_source.capitalize()} ({top_source_count})", border=True)
+        st.metric(label="Top Source", value=f"{str(top_source).capitalize()} ({top_source_count})", border=True)
 
 
 def render_news_card(news: pd.Series, card_id: str) -> None:
@@ -147,7 +147,17 @@ def render_news_card(news: pd.Series, card_id: str) -> None:
 
     # Relative time
     timestamp = news.get('timestamp')
-    seconds = (datetime.now(timezone.utc) - timestamp).total_seconds()
+    if isinstance(timestamp, datetime):
+        seconds = (datetime.now(timezone.utc) - timestamp).total_seconds()
+    else:
+        if timestamp is None:
+            seconds = 0
+        else:
+            try:
+                timestamp_dt = pd.to_datetime(timestamp)
+                seconds = (datetime.now(timezone.utc) - timestamp_dt).total_seconds()
+            except Exception:
+                seconds = 0
     time_str = (
         f"{int(seconds)}s ago" if seconds < 60 else
         f"{int(seconds // 60)}m ago" if seconds < 3600 else
@@ -159,7 +169,7 @@ def render_news_card(news: pd.Series, card_id: str) -> None:
 
     with st.container(border=True):
         st.caption(f":{color}[{status.capitalize()}] · {time_str}")
-        st.markdown(f"**{headline}**")
+        st.subheader(headline)
         st.caption(f"{source.capitalize()} · {author}")
 
         def set_selected_news():

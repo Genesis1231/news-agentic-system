@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.parse import urlparse, unquote
 
 from langchain_core.messages import HumanMessage
+from typing import Any, cast
 from backend.utils.prompt import load_prompt
 from backend.core.agent import BaseAgent
 
@@ -167,7 +168,7 @@ class VideoAnalyzer(BaseAgent):
     
         try:
             logger.debug(f"Analyzing video: {url}")
-            response = await self._invoke([HumanMessage(content=content)])
+            response = await self._invoke([HumanMessage(content=cast(Any, content))])
             return response.content
 
         except Exception as e:

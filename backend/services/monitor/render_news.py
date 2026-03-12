@@ -111,19 +111,24 @@ def render_status_timeline(status: str) -> None:
 
             label = stage.capitalize()
 
-            with st.container(border=True):
-                if is_current:
-                    st.markdown(f":{color}[**● {label}**]")
-                elif is_completed:
-                    st.markdown(f":{color}[**✓ {label}**]")
-                elif is_failed:
-                    st.markdown(f":{color}[**✕ {label}**]")
-                else:
-                    st.markdown(f":{color}[○ {label}]")
+            # Each step always shows its color. Reached steps are bold with filled icon.
+            alert_map = {
+                "aggregated": st.info,
+                "processing": st.warning,
+                "production": st.warning,
+                "published": st.success,
+                "failed": st.error,
+            }
+            alert_fn = alert_map.get(stage, st.info)
 
-    # Progress bar under the steps as a visual connector
-    progress_map = {0: 0.1, 1: 0.3, 2: 0.55, 3: 0.8, 4: 1.0}
-    st.progress(progress_map.get(current_stage_index, 0))
+            if is_completed or is_current or is_failed:
+                with st.container(border=True):
+                    if is_completed:
+                        alert_fn(f"**✓ {label}**")
+                    else:
+                        alert_fn(f"**● {label}**")
+            else:
+                alert_fn(f"○ {label}")
 
 
 def render_source_section(news: pd.Series) -> None:

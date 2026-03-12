@@ -30,7 +30,7 @@ class RawNewsItem(BaseModel):
     
     # Classification fields
     news_category: List[str] = Field(default=["OTHER"], description="The category of the news")
-    geolocation: List[str] = Field(default=["GLOBAL"], description="The geolocation of the news")
+    news_type: List[str] = Field(default=["GLOBAL"], description="The type of the news")
     source_level: str = Field(default="TERTIARY", description="The level of the source")
     sentiment: str = Field(default="NEUTRAL", description="The sentiment of the news")
     entities: List[str] = Field(default=[], description="The entities in the news")
@@ -46,7 +46,7 @@ class RawNewsItem(BaseModel):
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert Pydantic News model to dictionary."""
-        model_data = self.model_dump(exclude=["author"])
+        model_data = self.model_dump(exclude={"author"})
         model_data["source_url"] = str(model_data["source_url"]) if model_data["source_url"] is not None else None
 
         return model_data
@@ -55,7 +55,7 @@ class RawNewsItem(BaseModel):
         """Convert Pydantic News model to SQLAlchemy RawNewsDB model."""
         
         # Exclude the id field if exclude_id is True
-        exclude_fields = ["author"] if not exclude_id else ["author", "id"]
+        exclude_fields = {"author"} if not exclude_id else {"author", "id"}
         model_data = self.model_dump(exclude=exclude_fields)
         
         # Convert HttpUrl object to string

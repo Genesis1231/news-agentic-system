@@ -1,14 +1,14 @@
 from config import logger
 from pydantic import BaseModel, Field, field_validator
-from typing import List
+from typing import List, Literal, Optional
 
-ENUM_NEWS_CATEGORY = [
+ENUM_NEWS_CATEGORY = Literal[
     "AI", "ROBOTICS", "QUANTUM", "SPACE", "BIOTECH", "BLOCKCHAIN", 
     "HARDWARE", "SOFTWARE", "SECURITY", "STARTUP", "INVESTMENT", "BUSINESS", 
     "EDUCATION", "POLICY", "COMMUNITY", "OTHER"
 ]
 
-ENUM_NEWS_TYPE = [
+ENUM_NEWS_TYPE = Literal[
     "ANNOUNCEMENT",    # Official statements, releases
     "RESEARCH",        # Research papers, technical reports
     "ANALYSIS",        # Insights, analysis
@@ -21,9 +21,9 @@ ENUM_NEWS_TYPE = [
     "OTHER"
 ]
 
-ENUM_GEOLOCATION = ["CHINA", "APAC", "EUROPE", "US", "AFRICA", "MIDEAST", "LATIN_AMERICA", "RUSSIA", "GLOBAL"]
-ENUM_SOURCE_LEVEL = ["PRIMARY", "SECONDARY", "TERTIARY"]
-ENUM_SENTIMENT = ["POSITIVE", "NEGATIVE", "NEUTRAL"]
+ENUM_GEOLOCATION = Literal["CHINA", "APAC", "EUROPE", "US", "AFRICA", "MIDEAST", "LATIN_AMERICA", "RUSSIA", "GLOBAL"]
+ENUM_SOURCE_LEVEL = Literal["PRIMARY", "SECONDARY", "TERTIARY"]
+ENUM_SENTIMENT = Literal["POSITIVE", "NEGATIVE", "NEUTRAL"]
 
 class Classification(BaseModel):
     """Output format for the classification"""
@@ -32,16 +32,16 @@ class Classification(BaseModel):
     
     analysis: str = Field(..., description="The analysis for the content classification.")
 
-    news_category: List[str] = Field(
-        default=["OTHER"],
+    news_category: List[ENUM_NEWS_CATEGORY] = Field(
+        default_factory=lambda: ["OTHER"],
         description="The category of the news",
-        enum = ENUM_NEWS_CATEGORY
+        min_length=1
     )
     
-    geolocation: List[str] = Field(
-        default=["GLOBAL"],
+    news_type: List[ENUM_NEWS_TYPE] = Field(
+        default_factory=lambda: ["OTHER"],
         description="The type of the news",
-        enum=ENUM_GEOLOCATION
+        min_length=1
     )
     
     relevance: float = Field(
@@ -51,16 +51,14 @@ class Classification(BaseModel):
         description="Relevance score to the target audience, from 0 to 1"
     )
         
-    source_level: str | None = Field(
-        ...,
+    source_level: ENUM_SOURCE_LEVEL | None = Field(
+        None,
         description="The source level of the content", 
-        enum=ENUM_SOURCE_LEVEL
     )
     
-    sentiment: str | None = Field(
-        ...,
+    sentiment: ENUM_SENTIMENT | None = Field(
+        None,
         description="The sentiment of the content", 
-        enum=ENUM_SENTIMENT
     )
     
     entities: List[str] = Field(..., description="The entities mentioned in the content")  

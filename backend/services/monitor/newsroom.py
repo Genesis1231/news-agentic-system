@@ -147,9 +147,16 @@ class Newsroom:
             # Find the selected news item by ID
             from .render_news import render_news_detail_page
 
-            selected_news = st.session_state.news_data[
+            matches = st.session_state.news_data[
                 st.session_state.news_data['id'] == raw_id
-            ].iloc[0]
+            ]
+
+            if matches.empty:
+                st.session_state.selected_news = None
+                st.rerun()
+                return
+
+            selected_news = matches.iloc[0]
 
             # Fetch logs from Redis on-demand for the detail view
             logs = fetch_news_logs(self.redis_client, raw_id)
