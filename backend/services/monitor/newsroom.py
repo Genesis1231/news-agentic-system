@@ -1,11 +1,10 @@
 from config import logger, configuration
-import asyncio
 import streamlit as st
 from redis import Redis, ConnectionPool
 
 from backend.core.database import DataInterface
 from .styles import apply_dashboard_style
-from .render_data import fetch_news_data, filter_news_dataframe, generate_sample_news
+from .render_data import fetch_news_data, fetch_news_logs, filter_news_dataframe, generate_sample_news
 from .render_panel import render_panel
 
 
@@ -42,14 +41,14 @@ class Newsroom:
 
         # Fetch initial data
         try:
-            news_data = fetch_news_data(self.redis_client)
+            news_data = fetch_news_data(self.database)
 
             if not news_data.empty:
                 st.session_state.news_data = news_data
                 logger.debug(f"Fetched {len(news_data)} news items.")
             elif 'news_data' not in st.session_state:
                 st.session_state.news_data = generate_sample_news(30)
-                st.warning("No data in Redis. Displaying sample data.")
+                st.warning("No data in database. Displaying sample data.")
                 
         except Exception as e:
             logger.error(f"Error fetching data: {e}")
@@ -62,16 +61,16 @@ class Newsroom:
                
     def initialize(self) -> None:
         """Set up initial dashboard state and configuration"""
-        
-        # Apply dashboard style
-        apply_dashboard_style()
-        
+
         # Set page title and layout
         st.set_page_config(
-            page_title="Newsroom Dashboard",
+            page_title="BURST Newsroom",
             layout="wide",
             initial_sidebar_state="expanded"
         )
+
+        # Apply dashboard style
+        apply_dashboard_style()
         
         # Initialize session state variables
         defaults = {
@@ -100,15 +99,22 @@ class Newsroom:
 
         if not st.session_state.authenticated:
             # Center the login form using columns
-            col1, col2, col3 = st.columns([1, 1, 1])
+            col1, col2, col3 = st.columns([1.2, 1, 1.2])
 
             with col2:
-                st.title("Newsroom Login")
+                st.markdown("""
+                <div style="text-align: center; margin-top: 15vh; margin-bottom: 2rem;">
+                    <div style="font-family: 'DM Sans', sans-serif; font-size: 2.4rem; font-weight: 700;
+                                letter-spacing: -0.04em; color: #d4a843; margin-bottom: 6px;">BURST</div>
+                    <div style="font-family: 'DM Sans', sans-serif; font-size: 0.9rem; color: #8b919a;
+                                letter-spacing: 0.12em; text-transform: uppercase;">Newsroom Dashboard</div>
+                </div>
+                """, unsafe_allow_html=True)
 
                 with st.form("login_form"):
-                    username = st.text_input("Username", key="login_username")
-                    password = st.text_input("Password", type="password", key="login_password")
-                    login_button = st.form_submit_button("🔑 Login", width="stretch", type="primary")
+                    username = st.text_input("Username", key="login_username", placeholder="Enter username")
+                    password = st.text_input("Password", type="password", key="login_password", placeholder="Enter password")
+                    login_button = st.form_submit_button("Sign In", width="stretch", type="primary")
 
                     if login_button:
                         if (username == configuration["auth"]["username"] and
@@ -135,21 +141,19 @@ class Newsroom:
         
         logger.debug(f"Rendering content with selected_news={st.session_state.selected_news}")        
         
-        render_panel(self.redis_client, logout_callback=self.logout)
-        
+        render_panel(self.database, logout_callback=self.logout)
+
         if raw_id := st.session_state.selected_news:
             # Find the selected news item by ID
             from .render_news import render_news_detail_page
-            
+
             selected_news = st.session_state.news_data[
                 st.session_state.news_data['id'] == raw_id
             ].iloc[0]
-            
-            # news_production = asyncio.run(self.database.get_single_news(raw_id))
-            # if news_production:
-            #     news_production = news_production.to_dict()
-                
-            render_news_detail_page(selected_news)
+
+            # Fetch logs from Redis on-demand for the detail view
+            logs = fetch_news_logs(self.redis_client, raw_id)
+            render_news_detail_page(selected_news, logs=logs)
         else:
             # Show main news dashboard
             from .render_main import render_trend_chart, render_news_board

@@ -82,10 +82,10 @@ class VideoAnalyzer(BaseAgent):
         
         except subprocess.CalledProcessError as e:
             logger.error(f"Video optimization FFmpeg failed: {e.stderr}")
-            return None
+            return ""
         except Exception as e:
             logger.error(f"Error optimizing video size: {e}")
-            return None
+            return ""
 
     async def _optimize_video(self, input_path: str) -> str:
         """Asynchronously offloads video optimization to a separate thread."""

@@ -11,6 +11,7 @@ from backend.core.redis import RedisManager, Tracker
 from backend.core.reporter import BaseReporter
 from backend.core.database import DataInterface
 from backend.utils.vision import MediaDownloader
+from backend.utils.metrics import potential_impact_score
 
 class TwitterReporter(BaseReporter):
     """
@@ -273,6 +274,16 @@ class TwitterReporter(BaseReporter):
         # Process media through image descriptor
         media_content = await self.download_media(media=tweet_media, post_id=tweet_id)
 
+        # Compute impact score from raw metrics
+        score = potential_impact_score(
+            timestamp=timestamp,
+            metrics_likes=tweet.get('likeCount', 0),
+            metrics_comments=tweet.get('replyCount', 0),
+            metrics_bookmarks=tweet.get('bookmarkCount', 0),
+            metrics_reposts=tweet.get('retweetCount', 0) + tweet.get('quoteCount', 0),
+            metrics_views=tweet.get('viewCount', 0)
+        )
+
         # Return RawNewsItem pydantic object
         return RawNewsItem(
                 source_name="twitter",
@@ -286,11 +297,7 @@ class TwitterReporter(BaseReporter):
                 ),
                 text=tweet_text,
                 media_content=media_content,
-                metrics_views=tweet.get('viewCount', 0),
-                metrics_likes=tweet.get('likeCount', 0),
-                metrics_comments=tweet.get('replyCount', 0),
-                metrics_reposts=tweet.get('retweetCount', 0) + tweet.get('quoteCount', 0),
-                metrics_bookmarks=tweet.get('bookmarkCount', 0)
+                impact_score=score
             )
 
     async def download_media(self, media: Dict[str, Any], post_id: str) -> Dict[str, Any]:

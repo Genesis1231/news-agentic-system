@@ -9,6 +9,7 @@ from backend.core.redis import RedisManager, Tracker
 from backend.core.reporter import BaseReporter
 from backend.core.database import DataInterface
 from backend.utils.vision import MediaDownloader
+from backend.utils.metrics import potential_impact_score
 
 from backend.utils.weibo_crawler.weibo import Weibo
 
@@ -291,6 +292,16 @@ class WeiboReporter(BaseReporter):
         #     context=post_content
         # )
         
+        # Compute impact score from raw metrics
+        score = potential_impact_score(
+            timestamp=timestamp,
+            metrics_likes=int(post.get("attitudes_count", 0)),
+            metrics_comments=int(post.get("comments_count", 0)),
+            metrics_bookmarks=0,
+            metrics_reposts=int(post.get("reposts_count", 0)),
+            metrics_views=0
+        )
+
         # Return RawNewsItem pydantic object
         return RawNewsItem(
             source_name="weibo",
@@ -304,11 +315,7 @@ class WeiboReporter(BaseReporter):
             ),
             text=post_content,
             media_content=media_content,
-            metrics_views=0,  # Weibo doesn't typically expose view counts
-            metrics_likes=int(post.get("attitudes_count", 0)),  
-            metrics_comments=int(post.get("comments_count", 0)),    
-            metrics_reposts=int(post.get("reposts_count", 0)),  
-            metrics_bookmarks=0  # Not available in weibo data
+            impact_score=score
         )
 
     def _parse_timestamp(self, value: str | None) -> datetime:

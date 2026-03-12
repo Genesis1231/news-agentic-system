@@ -27,12 +27,8 @@ class RawNewsDB(BaseDB):
     text: Mapped[str] = mapped_column(String, nullable=False)
     media_content: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     
-    # Metrics
-    metrics_views: Mapped[int] = mapped_column(Integer, default=0)
-    metrics_likes: Mapped[int] = mapped_column(Integer, default=0)
-    metrics_comments: Mapped[int] = mapped_column(Integer, default=0)
-    metrics_reposts: Mapped[int] = mapped_column(Integer, default=0)
-    metrics_bookmarks: Mapped[int] = mapped_column(Integer, default=0)
+    # Impact score (computed from engagement metrics at aggregation time)
+    impact_score: Mapped[float] = mapped_column(Float, default=0.0)
     
     # Classification fields
     news_category: Mapped[List[str]] = mapped_column(JSON, default=list)

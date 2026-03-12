@@ -25,12 +25,8 @@ class RawNewsItem(BaseModel):
     text: str = Field(..., description="Main content text")
     media_content: Dict[str, Any] = Field(default_factory=dict, description="Media content")
     
-    # Metrics
-    metrics_views: int = Field(default=0, ge=0)
-    metrics_likes: int = Field(default=0, ge=0)
-    metrics_comments: int = Field(default=0, ge=0)
-    metrics_reposts: int = Field(default=0, ge=0)
-    metrics_bookmarks: int = Field(default=0, ge=0)
+    # Impact score (computed from engagement metrics at aggregation time)
+    impact_score: float = Field(default=0.0, ge=0, description="Pre-computed impact score (0-100)")
     
     # Classification fields
     news_category: List[str] = Field(default=["OTHER"], description="The category of the news")
@@ -103,18 +99,8 @@ class RawNewsItem(BaseModel):
     
     @property
     def potential_impact_score(self) -> str:
-        """Calculate the potential impact score of the news item."""
-        from backend.utils.metrics import potential_impact_score
-        
-        score = potential_impact_score(
-            timestamp=self.timestamp,
-            metrics_likes=self.metrics_likes,
-            metrics_comments=self.metrics_comments,
-            metrics_bookmarks=self.metrics_bookmarks,
-            metrics_reposts=self.metrics_reposts,
-            metrics_views=self.metrics_views
-        )
-        return f"{score:.0f}/100"
+        """Return the pre-computed impact score as a formatted string."""
+        return f"{self.impact_score:.0f}/100"
     
     @property
     def time_text(self) -> str:
