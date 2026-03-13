@@ -14,7 +14,7 @@ def render_panel(database: DataInterface, logout_callback=None) -> None:
         st.markdown("""
         <div style="padding: 8px 0 20px 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 20px;">
             <div style="font-family: 'DM Sans', sans-serif; font-size: 1.5rem; font-weight: 700;
-                        letter-spacing: -0.04em; color: #d4a843;">BURST</div>
+                        letter-spacing: -0.04em; color: #d4a843;">BURST.FM</div>
             <div style="font-family: 'DM Sans', sans-serif; font-size: 0.7rem; color: #5a6069;
                         letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px;">Newsroom</div>
         </div>

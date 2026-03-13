@@ -51,10 +51,6 @@ class ProductionDirector:
                 data = await self.redis_client.listen(RedisQueue.PROCESSED)
                 if data and (news_id := data.get("id")):
                     await self._enqueue_news(news_id)
-                    await tracker.track({
-                        "id": news_id,
-                        "status": "production"
-                    })
                 
                 # If there are queued items, process them concurrently.
                 if not self.queue.empty():

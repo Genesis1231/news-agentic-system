@@ -139,7 +139,7 @@ class NewsWriter(BaseAgent):
         news_item: RawNewsItem,
         research_notes: str,
         original_script: str,
-        revision_notes: List[str]
+        revision_notes: List[str] | None
     ) -> Dict[str, Any] | None:
         """Main response function that build the prompt and get response from LLM"""
         

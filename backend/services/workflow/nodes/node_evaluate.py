@@ -27,8 +27,8 @@ class NewsEvaluationNode:
             temperature=temperature
         )
         self.editor_gamma = NewsEditor(
-            platform="Anthropic", 
-            model_name="claude-sonnet-4-6", 
+            platform="XAI", 
+            model_name="grok-4", 
             temperature=temperature
         )
         
@@ -59,7 +59,6 @@ class NewsEvaluationNode:
         
         if not valid_results:
             await tracker.log(raw_id, "All news editors failed to evaluate the content.")
-            await tracker.track({"id": raw_id, "status": "failed"})
             return Command(
                 update={"status": NewsStatus.FAILED},
                 goto=END
@@ -73,19 +72,10 @@ class NewsEvaluationNode:
         if decision_votes < 2: 
             # If the decision vote is less than 2, reject the news item
             await tracker.log(raw_id, f"News editors voted to reject the content.")
-            await tracker.track({"id": raw_id, "status": "failed"})
             return Command(
                 update={"status": NewsStatus.REJECTED }, 
                 goto=END
             )
-        
-        # track the evaluation result
-        await tracker.track({
-            "id": raw_id,
-            "details": {
-                "evaluation": evaluation
-            }
-        })
 
         # Always go to flash first; graph handles conditional deep dive after
         return Command(

@@ -11,8 +11,8 @@ from backend.core.redis import tracker
 class WritingNode:
     def __init__(
         self, 
-        platform: str = "XAI", 
-        model_name: str | None = "grok-4",
+        platform: str = "Anthropic", 
+        model_name: str | None = "opus-4-6",
         temperature: float | None = 1.0,
     ) -> None:
         """Initialize the WriterNode."""
@@ -22,20 +22,12 @@ class WritingNode:
             temperature=temperature,
         )
 
-    async def __call__(self, state: SubNewsState) -> Dict[str, Any]:
+    async def __call__(self, state: SubNewsState) -> Dict[str, Any] | Command:
 
         # Get the data from the state
         raw_data = state["raw_news"]
-        raw_id = raw_data.id
+        raw_id = str(raw_data.id)
         depth = state["depth"]
-        
-        # track the writing process
-        await tracker.track({
-            "id": raw_id,
-            "details": {
-                f"{depth.lower()}_processing_stage": "writing"
-            }
-        })
         
         # see if there are any revisions
         revision = state.get("revision", {})
@@ -47,7 +39,7 @@ class WritingNode:
             revision_notes = revision.get("notes")
             
             # log revision in monitor
-            await tracker.log(raw_id, f"News writer is revising the {depth} script.")
+            await tracker.log(str(raw_id), f"News writer is revising the {depth} script.")
             
             script = await self.agent.revise(
                 news_item=raw_data, 
@@ -60,7 +52,7 @@ class WritingNode:
             editorial_notes = state["evaluation"].get("editorial_notes", [])
             
             # log writing in monitor
-            await tracker.log(raw_id, f"News writer is crafting the {depth} script.")
+            await tracker.log(str(raw_id), f"News writer is crafting the {depth} script.")
             
             script = await self.agent.write(
                 news_item=raw_data, 
@@ -71,15 +63,14 @@ class WritingNode:
 
         # if the script is not generated, return an error
         if not script or not (draft_script := script.get("script", "")):
-            await tracker.log(raw_id, f"Failed to generate {depth} script, please check logs for more details.")
-            await tracker.track({"id": raw_id, "status": "failed"})
+            await tracker.log(str(raw_id), f"Failed to generate {depth} script, please check logs for more details.")
             return Command(
                 update={ "status": NewsStatus.FAILED },
                 goto=END
             )
 
         # log the draft script
-        await tracker.log(raw_id, f"Draft script: \n {json.dumps(script, indent=4)}")
+        await tracker.log(str(raw_id), f"Draft script: \n {json.dumps(script, indent=4)}")
                     
         return { "status": NewsStatus.COMPOSED, "draft": draft_script }
  

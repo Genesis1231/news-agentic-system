@@ -27,16 +27,7 @@ class FinalizeNode:
         depth = state["depth"]
         script = state.get("draft")
         
-        # track the final output
-        await tracker.track({
-            "id": raw_id,
-            "details": {
-                f"{depth.lower()}_processing_stage": "finalization",
-                f"{depth.lower()}_script": script
-            }
-        })
-        
-        await tracker.log(raw_id, f"News (ID:{raw_id}) {depth} script sent to production queue.")
+        await tracker.log(str(raw_id), f"News (ID:{raw_id}) {depth} script sent to production queue.")
         return { "output": [raw_news] }
     
         # processed_data = NewsItem(

@@ -73,7 +73,7 @@ class FlowGraph:
 
         graph = StateGraph(NewsState)
         graph.add_node("node_initialize", InitializationNode(database=self.database))
-        graph.add_node("node_classify", ClassificationNode())
+        graph.add_node("node_classify", ClassificationNode(database=self.database))
         graph.add_node("node_evaluate", NewsEvaluationNode())
         graph.set_entry_point("node_initialize")
 

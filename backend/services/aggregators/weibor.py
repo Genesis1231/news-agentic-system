@@ -238,18 +238,6 @@ class WeiboReporter(BaseReporter):
                 if news_id:
                     await self.database.update_raw_data(raw_data_id, {"is_processed": True})
                     await self.push_redis(news_id)
-                    await self.tracker.track({
-                        "id": news_id,
-                        "status": "aggregated",
-                        "source": news_data.source_name,
-                        "author": news_data.author.name,
-                        "url": str(news_data.source_url),
-                        "timestamp": news_data.timestamp,
-                        "details": {
-                            "content": news_data.text,
-                            "media": news_data.media_content
-                        }
-                    })
                     await self.tracker.log(news_id, f"News {news_data.source_id} - has been aggregated and preprocessed.")
                                         
         except Exception as e:

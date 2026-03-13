@@ -1,4 +1,5 @@
 from config import logger
+import re
 import streamlit as st
 import pandas as pd
 from typing import Dict, Any, List
@@ -143,13 +144,37 @@ def render_source_section(news: pd.Series) -> None:
     raw_details = news.get('details')
     details = raw_details if isinstance(raw_details, dict) else {}
 
-    content_snippet = details.get('content', 'No content available.')
-    if content_snippet and len(content_snippet) > 1000:
-        content_snippet = content_snippet[:1000] + '...'
+    content = details.get('content', 'No content available.')
+
+    # Parse structured tweet content (retweets/quotes with tagged sections)
+    main_match = re.search(r'<main_content>(.*?)</main_content>', content or '', re.DOTALL)
+    retweet_match = re.search(r'<retweeted_content>(.*?)</retweeted_content>', content or '', re.DOTALL)
+    # Extract the "Retweeted from ..." prefix line between the tags
+    prefix_match = re.search(r'</main_content>\s*(.*?)\s*<retweeted_content>', content or '', re.DOTALL)
+
+    if not main_match and not prefix_match:
+        prefix_match = re.search(r'^(.*?)<retweeted_content>', content or '', re.DOTALL)
 
     with st.container(border=True):
         st.caption(f"**{author}** · {timestamp}")
-        st.markdown(content_snippet)
+
+        if main_match or retweet_match:
+            # Structured retweet/quote — render as subsections
+            if main_match:
+                main_text = main_match.group(1).strip()
+                st.markdown(main_text)
+
+            if retweet_match:
+                retweet_text = retweet_match.group(1).strip()
+                prefix_text = prefix_match.group(1).strip() if prefix_match else "Retweeted"
+                prefix_text = re.sub(r'<[^>]+>', '', prefix_text).strip()
+
+                with st.expander(f"{prefix_text}", expanded=True, icon="🔁"):
+                    st.markdown(retweet_text)
+        else:
+            # Regular tweet — show as-is
+            content_snippet = content if content and len(content) <= 1000 else (content[:1000] + '...' if content else '')
+            st.markdown(content_snippet)
 
     media = details.get('media', {})
     for media_type in ['photo', 'video']:
@@ -197,8 +222,11 @@ def render_classification(details: Dict[str, Any]) -> None:
 
     # Entity tags as pills
     if entities := classification.get('entities'):
-        st.caption("Entities")
-        st.markdown(" · ".join(f"`{entity}`" for entity in entities))
+        st.subheader("Entities")
+        entity_cols = st.columns(min(len(entities), 4)) # Max 4 per row
+        for idx, entity in enumerate(entities):
+            with entity_cols[idx % 4]:
+                st.info(entity)
 
     # Analysis block
     if analysis := classification.get('analysis'):

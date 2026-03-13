@@ -99,7 +99,7 @@ def render_trend_chart(news_data: pd.DataFrame) -> None:
     )
 
     if chart:
-        st.altair_chart(chart, width="stretch")
+        st.altair_chart(chart, use_container_width=True)
 
 
 def render_metrics_section(filtered_data: pd.DataFrame) -> None:
@@ -168,7 +168,7 @@ def render_news_card(news: pd.Series, card_id: str) -> None:
     color = STATUS_ST_COLORS.get(status, "gray")
 
     with st.container(border=True):
-        st.caption(f":{color}[{status.capitalize()}] · {time_str}")
+        st.caption(f"#{news_id}: :{color}[{status.capitalize()}] · {time_str} ")
         st.subheader(headline)
         st.caption(f"{source.capitalize()} · {author}")
 

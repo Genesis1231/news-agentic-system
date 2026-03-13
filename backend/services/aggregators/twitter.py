@@ -80,10 +80,11 @@ class TwitterReporter(BaseReporter):
     async def load_fetched_ids(self) -> None:
         """Get the set of indexed ids of the fetched news items."""
         
-        # Fetch the ids from the last N days
+        # Fetch the ids from the last N days (limit=0 to load ALL, not just default 100)
         time_range = (datetime.now(timezone.utc) - timedelta(days=self.NUM_DAYS), None)
         fetched_data = await self.database.load_raw_data(
-            time_range=time_range, 
+            time_range=time_range,
+            limit=0,
             source_name="twitter"
         )
         

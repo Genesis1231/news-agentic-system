@@ -30,7 +30,7 @@ class RawNewsItem(BaseModel):
     
     # Classification fields
     news_category: List[str] = Field(default=["OTHER"], description="The category of the news")
-    news_type: List[str] = Field(default=["GLOBAL"], description="The type of the news")
+    news_type: List[str] = Field(default=["OTHER"], description="The type of the news")
     source_level: str = Field(default="TERTIARY", description="The level of the source")
     sentiment: str = Field(default="NEUTRAL", description="The sentiment of the news")
     entities: List[str] = Field(default=[], description="The entities in the news")

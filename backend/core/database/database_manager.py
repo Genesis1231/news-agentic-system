@@ -1,6 +1,6 @@
 import asyncio
 from config import logger
-from datetime import datetime
+from datetime import datetime, timezone
 from config import configuration, logger
 from typing import Type, List, Any, Dict, Tuple
 import json
@@ -124,9 +124,20 @@ class DatabaseManager:
                         else:
                             successful_objs.append(batch_data[idx])
                             
-                except IntegrityError as e:
-                    logger.warning(f"Skipping duplicate records in batch due to IntegrityError: {str(e)}")
+                except IntegrityError:
+                    # Batch contains duplicates — rollback and retry individually
                     await session.rollback()
+                    for obj in batch_data:
+                        try:
+                            session.add(obj)
+                            await session.flush()
+                            await session.refresh(obj)
+                            successful_objs.append(obj)
+                        except IntegrityError:
+                            await session.rollback()
+                        except Exception as e:
+                            logger.warning(f"Error inserting individual record: {e}")
+                            await session.rollback()
                     continue
                             
                 except Exception as e:
@@ -198,7 +209,7 @@ class DatabaseManager:
                 
                 # If end_time is None, set it to the current time
                 if end_time is None:
-                    end_time = datetime.now()
+                    end_time = datetime.now(timezone.utc)
                     
                 # if the model has a timestamp field, add a between condition
                 if hasattr(model, 'timestamp'):

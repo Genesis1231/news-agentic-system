@@ -32,12 +32,6 @@ class ReviewNode:
 
         # track the processing
         await tracker.log(raw_id, f"Chief editor is reviewing the {depth} script.")
-        await tracker.track({
-            "id": raw_id,
-            "details": {
-                f"{depth.lower()}_processing_stage": "review"
-            }
-        })
         
         final_review = await self.agent.review(
             news_item=raw_data, 
@@ -47,7 +41,6 @@ class ReviewNode:
         # If no final review is generated, return an error.
         if not final_review:
             await tracker.log(raw_id, f"Failed to approve {depth} script. Please check the logs.")
-            await tracker.track({"id": raw_id, "status": "failed"})
             return Command(
                 update={ "status": NewsStatus.FAILED },
                 goto=END
@@ -55,13 +48,6 @@ class ReviewNode:
         
         # log the final review
         await tracker.log(raw_id, f"Chief editor: {json.dumps(final_review, indent=4)}")
-        await tracker.track({
-            "id": raw_id, 
-            "details": {
-                f"{depth.lower()}_draft": script,
-                f"{depth.lower()}_review": final_review.get("editorial_analysis"),        
-            }
-        })
         
         # Format the final output from the reviews
         approved = self.approve_script(final_review, depth)
@@ -71,7 +57,6 @@ class ReviewNode:
             if count > 2:
                 # TODO: send to human editor
                 await tracker.log(raw_id, f"Revised more than 3 times for {depth} script. Send to human editor.")
-                await tracker.track({"id": raw_id, "status": "failed"})
                 return Command(
                     update={ "status": NewsStatus.FAILED },
                     goto=END

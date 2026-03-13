@@ -85,16 +85,18 @@ class DataInterface:
     
     
     async def load_raw_data(
-        self, 
-        time_range: Tuple[datetime, datetime] | None = None, 
+        self,
+        time_range: Tuple[datetime, datetime] | None = None,
+        limit: int = 100,
         **kwargs
     ) -> List[RawData]:
         """ Load raw data from database."""
-        
-        try:        
+
+        try:
             result = await self.database_manager.query(
                 RawData,
                 time_range=time_range,
+                limit=limit,
                 filters=kwargs
             )
             return cast(List[RawData], result or [])

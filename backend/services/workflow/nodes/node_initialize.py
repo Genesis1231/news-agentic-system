@@ -18,24 +18,20 @@ class InitializationNode:
         self.image_descriptor = ImageDescriptor()
         self.video_analyzer= VideoAnalyzer()
 
-    async def __call__(self, state: NewsState) -> Dict[str, Any]:
+    async def __call__(self, state: NewsState) -> Command:
 
         raw_id = state.get("id")
 
         await tracker.log(raw_id, f"Initializing creative workflow.")
-        await tracker.track({
-            "id": raw_id, 
-            "status": "processing"
-        })
-        
+    
         # Get the news data and validate it
-        raw_data: RawNewsItem = await self.database.get_single_rawnews(raw_id)
+        raw_data = await self.database.get_single_rawnews(raw_id)
         if not raw_data or raw_data.is_processed:
             logger.debug(f"News (ID:{raw_id}) is not available or already processed.")
             return Command(
                 update={"status": NewsStatus.FAILED},
                 goto=END
-            )
+            )   
 
         # Interpret the media content
         if media := raw_data.media_content:
@@ -71,14 +67,6 @@ class InitializationNode:
                 # update the media content in the database
                 raw_data.media_content = media
                 await self.database.update_raw_news(raw_id, raw_data)
-                
-                # track the media content
-                await tracker.track({
-                    "id": raw_id, 
-                    "details": {
-                        "media": media
-                    }
-                })
                 
             except Exception as e:
                 logger.error(f"Error interpreting media content: {e}")

@@ -48,16 +48,7 @@ class MultimediaManager:
         
         # log start
         news_depth = news_data.depth.lower()
-        await tracker.log(news_data.raw_id, f"Multimedia manager has started the production.")
-        await tracker.track({
-            "id": news_data.raw_id,
-            "details": {
-                f"{news_depth}_production": {
-                    "audio": "start",
-                    "video": "start"
-                }
-            }
-        })
+        await tracker.log(str(news_data.raw_id), f"Multimedia manager has started the production.")
         
         # Get music path
         music_path = get_music(news_depth)
@@ -81,16 +72,7 @@ class MultimediaManager:
             result = await asyncio.wait_for(future, timeout=self._timeout)
             
             # track the production result
-            await tracker.log(news_data.raw_id, f"{news_depth.capitalize()} news production completed: {json.dumps(result, indent=2)}")
-            await tracker.track({
-                "id": news_data.raw_id,
-                "details": {
-                    f"{news_depth}_production": {
-                        "audio": result.get("audio_path"),
-                        "video": result.get("video_path", {}).get("portrait") or result.get("video_path", {}).get("landscape")
-                    }
-                }
-            })
+            await tracker.log(str(news_data.raw_id), f"{news_depth.capitalize()} news production completed: {json.dumps(result, indent=2)}")
             
             return result
         

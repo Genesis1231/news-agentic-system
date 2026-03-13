@@ -38,7 +38,7 @@ class NewsItem(BaseModel):
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert Pydantic News model to dictionary."""
-        model_data = self.model_dump(exclude=["author"])
+        model_data = self.model_dump(exclude={"author"})
         model_data["source_url"] = str(model_data["source_url"]) if model_data["source_url"] is not None else None
 
         return model_data
@@ -47,8 +47,8 @@ class NewsItem(BaseModel):
         """Convert Pydantic News model to SQLAlchemy NewsDB model."""
         try:
             # Exclude the id field if exclude_id is True
-            exclude_fields = [] if not exclude_id else ["id"]
-            model_data = self.model_dump(exclude=exclude_fields)
+            exclude_fields = [] if not exclude_id else {"id"}
+            model_data = self.model_dump(exclude=set(exclude_fields))
 
             # Convert HttpUrl objects in cited_sources to strings
             if model_data.get("cited_sources"):
