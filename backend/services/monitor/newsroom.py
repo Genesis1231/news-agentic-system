@@ -35,9 +35,9 @@ class Newsroom:
     def run(self):
         """Run the dashboard application"""
 
-        # Check authentication first
-        if not self.login():
-            return
+        # # Check authentication first
+        # if not self.login():
+        #     return
 
         # Fetch initial data
         try:
@@ -48,13 +48,13 @@ class Newsroom:
                 logger.debug(f"Fetched {len(news_data)} news items.")
             elif 'news_data' not in st.session_state:
                 st.session_state.news_data = generate_sample_news(30)
-                st.warning("No data in database. Displaying sample data.")
-                
+                st.info("No news items found. Showing sample data for preview.")
+
         except Exception as e:
             logger.error(f"Error fetching data: {e}")
             if 'news_data' not in st.session_state:
                 st.session_state.news_data = generate_sample_news(3)
-                st.error("Error fetching data. Displaying sample data.")
+                st.error(f"Could not connect to the database — check that PostgreSQL is running. Showing sample data for now.")
 
         # render sidebar and main content
         self.render_newsroom()

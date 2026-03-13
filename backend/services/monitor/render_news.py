@@ -1,7 +1,7 @@
 from config import logger
 import streamlit as st
 import pandas as pd
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from .render_production import render_production
 from .styles import STATUS_COLORS, STAGES
@@ -16,7 +16,7 @@ STATUS_ST_COLORS = {
 }
 
 
-def render_news_detail_page(news: pd.Series, logs: list = None) -> None:
+def render_news_detail_page(news: pd.Series, logs: List[str] | None = None) -> None:
     """Render detailed view of a news item."""
 
     if news is None or news.empty:
@@ -49,9 +49,11 @@ def render_news_detail_page(news: pd.Series, logs: list = None) -> None:
     with st.expander("View Logs", expanded=False):
         st.code("\n\n".join(str(entry) for entry in logs[::-1]), wrap_lines=True)
 
-    # Status timeline (progress bar at bottom replaces divider)
+    # Status timeline
     render_status_timeline(status)
 
+    st.divider()
+    
     # Source + Classification side by side
     col1, col2 = st.columns(2)
     with col1:
@@ -122,11 +124,10 @@ def render_status_timeline(status: str) -> None:
             alert_fn = alert_map.get(stage, st.info)
 
             if is_completed or is_current or is_failed:
-                with st.container(border=True):
-                    if is_completed:
-                        alert_fn(f"**✓ {label}**")
-                    else:
-                        alert_fn(f"**● {label}**")
+                if is_completed:
+                    alert_fn(f"**✓ {label}**")
+                else:
+                    alert_fn(f"**● {label}**")
             else:
                 alert_fn(f"○ {label}")
 
@@ -185,7 +186,7 @@ def render_classification(details: Dict[str, Any]) -> None:
     cols = st.columns([1, 1])
     with cols[0]:
         st.metric(label="Category", value=', '.join(classification.get('news_category', ['N/A'])), border=True)
-        st.metric(label="Geolocation", value=', '.join(classification.get('geolocation', ['N/A'])), border=True)
+        st.metric(label="News Type", value=', '.join(classification.get('news_type', ['N/A'])), border=True)
         st.metric(label="Impact Score", value=classification.get('score', 0), border=True)
     with cols[1]:
         st.metric(label="Sentiment", value=classification.get('sentiment', 'N/A'), border=True)

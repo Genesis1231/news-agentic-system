@@ -50,8 +50,8 @@ class TwitterReporter(BaseReporter):
         )
         self.database: DataInterface = database
         
-        self.semaphore: asyncio.Semaphore = asyncio.Semaphore(self.CONCURRENCY)
-        self.client: ApifyClientAsync = ApifyClientAsync(os.getenv("APIFY_TOKEN"))
+        self.semaphore: asyncio.Semaphore | None = asyncio.Semaphore(self.CONCURRENCY)
+        self.client: ApifyClientAsync | None = ApifyClientAsync(os.getenv("APIFY_TOKEN"))
         self.downloader: MediaDownloader = MediaDownloader()
         self.tracker: Tracker = tracker
         
@@ -82,17 +82,20 @@ class TwitterReporter(BaseReporter):
         
         # Fetch the ids from the last N days
         time_range = (datetime.now(timezone.utc) - timedelta(days=self.NUM_DAYS), None)
-        fetched_data = await self.database.load_raw_data(time_range=time_range, source_name="twitter")
+        fetched_data = await self.database.load_raw_data(
+            time_range=time_range, 
+            source_name="twitter"
+        )
         
         if not fetched_data:
             logger.info("No recent twitter posts found.")
             return
 
         for data in fetched_data:
-            self.fetched_ids.add(data.get("source_id"))
+            self.fetched_ids.add(data.source_id)
             
             # process the tweets that are not processed previously
-            if not data.get("is_processed"):
+            if not data.is_processed:
                 await self.preprocess_tweet(data.get("raw_data"), data.get("id"))
         
         logger.debug(f"Loaded {len(self.fetched_ids)} recently fetched ids.")
@@ -114,14 +117,18 @@ class TwitterReporter(BaseReporter):
                 if run and "defaultDatasetId" in run:
                     dataset = await self.client.dataset(run["defaultDatasetId"]).list_items(limit=10)
                     
-                    # Filter out invalid tweets, already fetched tweets, and replies
+                    # Filter out invalid tweets and replies, update score for known tweets
                     for data in dataset.items:
                         tweet_id = data.get("id")
-                        if (int(tweet_id) < 0 
-                            or f'twitter_{tweet_id}' in self.fetched_ids 
-                            or data.get("isReply")):
+                        if int(tweet_id) < 0 or data.get("isReply"):
                             continue
-                            
+
+                        source_id = f'twitter_{tweet_id}'
+                        if source_id in self.fetched_ids:
+                            # Update impact score with fresh metrics
+                            await self.update_impact_score(source_id, data)
+                            continue
+
                         raw_data_id = await self.save_tweet(data)
                         fetched_tasks.append(self.preprocess_tweet(data, raw_data_id))
 
@@ -150,13 +157,15 @@ class TwitterReporter(BaseReporter):
             
             # Create batch of tasks to run concurrently
             batch_tasks = [
-                self.client.actor(self.actor_id).call(run_input={
-                    "from": account,
-                    "maxItems": self.NUM_FETCH_ITEMS,
-                    "queryType": "Latest",
-                    "since": start_date_str,
-                    "logger": None
-                })
+                self.client.actor(self.actor_id).call(
+                    run_input={
+                        "from": account,
+                        "maxItems": self.NUM_FETCH_ITEMS,
+                        "queryType": "Latest",
+                        "since": start_date_str,
+                    },
+                    logger=None
+                )
                 for account in batch
             ]
             
@@ -177,32 +186,20 @@ class TwitterReporter(BaseReporter):
         self.fetched_ids.add(f"twitter_{tweet.get('id')}")
         
         try:
-            async with self.semaphore:
+            async with self.semaphore: #type: ignore
                 news_data = await self.process_raw_tweet(tweet)
 
                 # save the news item into database and push to redis
                 news_id = await self.database.save_news_item(news_data)
                 if news_id:
                     await self.database.update_raw_data(raw_data_id, {"is_processed": True})
-                    await self.push_redis(news_id)
-                    await self.tracker.track({
-                        "id": news_id,
-                        "status": "aggregated",
-                        "source": news_data.source_name,
-                        "author": news_data.author.name,
-                        "url": str(news_data.source_url),
-                        "timestamp": news_data.timestamp,
-                        "details": {
-                            "content": news_data.text,
-                            "media": news_data.media_content
-                        }
-                    })
-                    await self.tracker.log(news_id, f"News {news_data.source_id} - has been aggregated and preprocessed.")
+                    await self.push_redis(str(news_id))
+                    await self.tracker.log(str(news_id), f"News {news_data.source_id} - has been aggregated and preprocessed.")
                                         
         except Exception as e:
             logger.error(f"Error preprocessing tweet ID:{tweet.get('id')}: {e}")
 
-    async def save_tweet(self, tweet: Dict[str, Any]) -> int | None:
+    async def save_tweet(self, tweet: Dict[str, Any]) -> int | List[int] | None:
         """Save the raw data into database."""
         try:
             timestamp = datetime.strptime(tweet['createdAt'], "%a %b %d %H:%M:%S %z %Y")
@@ -221,7 +218,7 @@ class TwitterReporter(BaseReporter):
             raise e
             
     
-    async def process_raw_tweet(self, tweet: Dict[str, Any]) -> Dict[str, Any] | None:
+    async def process_raw_tweet(self, tweet: Dict[str, Any]) -> Dict[str, Any] | RawNewsItem | None:
         """Convert a tweet data to RawNewsItem pydantic model."""
 
         if not tweet:
@@ -300,36 +297,51 @@ class TwitterReporter(BaseReporter):
                 impact_score=score
             )
 
-    async def download_media(self, media: Dict[str, Any], post_id: str) -> Dict[str, Any]:
+    async def update_impact_score(self, source_id: str, tweet: Dict[str, Any]) -> None:
+        """Recompute and update impact score for an already-fetched tweet."""
+        try:
+            timestamp = datetime.strptime(tweet['createdAt'], "%a %b %d %H:%M:%S %z %Y")
+            score = potential_impact_score(
+                timestamp=timestamp,
+                metrics_likes=tweet.get('likeCount', 0),
+                metrics_comments=tweet.get('replyCount', 0),
+                metrics_bookmarks=tweet.get('bookmarkCount', 0),
+                metrics_reposts=tweet.get('retweetCount', 0) + tweet.get('quoteCount', 0),
+                metrics_views=tweet.get('viewCount', 0)
+            )
+
+            existing = await self.database.load_raw_news(source_id=source_id)
+            if existing:
+                await self.database.update_raw_news(existing[0].id, {"impact_score": score})
+        except Exception as e:
+            logger.error(f"Error updating impact score for {source_id}: {e}")
+
+    async def download_media(self, media: list[dict[str, Any]], post_id: str) -> Dict[str, Any]:
         """Download media files from URLs."""
         
         if not media:
             return {}
-        
-        media_list = {}
-        
-        # Combine photo and video processing  
+
+        media_list: Dict[str, Any] = {}
+
         photo_urls = [
-            media['media_url_https'] for media in media 
-            if media['type'] == 'photo'
+            item["media_url_https"]
+            for item in media
+            if item.get("type") == "photo" and "media_url_https" in item
         ]
         if photo_urls:
             image_files = await self.downloader.download_media(photo_urls, post_id)
-            media_list['photo'] = {
-                'urls': image_files,
-            }
-            
-        # Process videos
+            media_list["photo"] = {"urls": image_files}
+
         video_urls = [
-            media['media_url_https'] for media in media 
-            if media['type'] == 'video'
+            item["media_url_https"]
+            for item in media
+            if item.get("type") == "video" and "media_url_https" in item
         ]
         if video_urls:
             video_files = await self.downloader.download_media(video_urls, post_id)
-            media_list['video'] = {
-                'urls': video_files,
-            }
-                
+            media_list["video"] = {"urls": video_files}
+
         return media_list
 
     async def __aenter__(self):

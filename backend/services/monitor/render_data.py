@@ -112,7 +112,7 @@ def _build_details(raw, news_items) -> dict:
         "media": raw.media_content or {},
         "classification": {
             "news_category": raw.news_category or [],
-            "geolocation": raw.geolocation or [],
+            "news_type": raw.news_type or [],
             "source_level": raw.source_level or "N/A",
             "sentiment": raw.sentiment or "N/A",
             "relevance": raw.relevance or 0.0,

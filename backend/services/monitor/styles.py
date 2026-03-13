@@ -134,7 +134,7 @@ def apply_dashboard_style() -> None:
         }
 
         .stButton button[kind="secondary"] {
-            border: 1px solid var(--accent) !important;
+            border: none !important;
             color: var(--accent) !important;
             background-color: var(--accent-dim) !important;
             font-family: 'DM Sans', sans-serif !important;

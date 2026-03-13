@@ -1,5 +1,5 @@
 from config import logger
-from typing import Dict, Any, List, Tuple
+from typing import Any, Dict, List, Mapping, Sequence, Tuple, Type, cast
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -16,9 +16,9 @@ class DataInterface:
         logger.debug(f"Data Interface layer initialized for {service}.")
 
     async def save_data(
-        self, 
-        data: BaseModel | List[BaseModel] | Dict[str, Any] | List[Dict[str, Any]],
-        model: type[ModelType]
+        self,
+        data: BaseModel | Sequence[BaseModel] | Mapping[str, Any] | Sequence[Mapping[str, Any]],
+        model: Type[ModelType]
     ) -> int | List[int] | None:
         """Save data to database, support single and multiple records."""
 
@@ -26,18 +26,37 @@ class DataInterface:
             logger.error(f"No data provided when saving {model.__name__} to database.")
             return None
 
-        try:        
-            result = await self.database_manager.create(model, data)
+        try:
+            normalized_data: Dict[str, Any] | BaseModel | List[Dict[str, Any]] | List[BaseModel]
+
+            if isinstance(data, BaseModel):
+                normalized_data = data
+            elif isinstance(data, Mapping):
+                normalized_data = dict(data)
+            elif isinstance(data, Sequence) and not isinstance(data, (str, bytes)):
+                if all(isinstance(item, BaseModel) for item in data):
+                    normalized_data = [cast(BaseModel, item) for item in data]
+                else:
+                    normalized_data = [dict(cast(Mapping[str, Any], item)) for item in data]
+            else:
+                logger.error(f"Unsupported data type for saving {model.__name__}.")
+                return None
+
+            result = await self.database_manager.create(model, normalized_data)
+
+            if not result:
+                return None
+
             # extract ids from the result
             data_ids = [
-                item.id if isinstance(item, BaseModel) else item['id']
+                cast(int, getattr(item, "id") if isinstance(item, BaseModel) else item["id"])
                 for item in result
             ]
-            
-            if isinstance(data, List):
+
+            if isinstance(data, Sequence) and not isinstance(data, (str, bytes, BaseModel, Mapping)):
                 return data_ids
             return data_ids[0]
-            
+
         except Exception as e:
             logger.error(f"Error saving {model.__name__} to database: {e}")
             return None
@@ -58,7 +77,8 @@ class DataInterface:
         """ Load authors from database."""
         
         try:        
-            return await self.database_manager.query(AuthorDB, filters=kwargs)
+            result = await self.database_manager.query(AuthorDB, filters=kwargs)
+            return cast(List[Author], result or [])
         except Exception as e:
             logger.error(f"Error loading authors from database: {e}")
             return []
@@ -72,11 +92,12 @@ class DataInterface:
         """ Load raw data from database."""
         
         try:        
-            return await self.database_manager.query(
+            result = await self.database_manager.query(
                 RawData,
                 time_range=time_range,
                 filters=kwargs
             )
+            return cast(List[RawData], result or [])
         except Exception as e:
             logger.error(f"Error loading raw data from database: {e}")
             return []
@@ -84,7 +105,8 @@ class DataInterface:
     async def load_raw_news(self, **kwargs) -> List[RawNewsDB]:
         """ Load raw news from database."""
         try:        
-            return await self.database_manager.query(RawNewsDB, filters=kwargs)
+            result = await self.database_manager.query(RawNewsDB, filters=kwargs)
+            return cast(List[RawNewsDB], result or [])
         except Exception as e:
             logger.error(f"Error loading raw news from database: {e}")
             return []
@@ -92,12 +114,13 @@ class DataInterface:
     async def load_news(self, **kwargs) -> List[NewsDB]:
         """ Load news from database."""
         try:        
-            return await self.database_manager.query(NewsDB, filters=kwargs)
+            result = await self.database_manager.query(NewsDB, filters=kwargs)
+            return cast(List[NewsDB], result or [])
         except Exception as e:
             logger.error(f"Error loading news from database: {e}")
             return []
     
-    async def get_single_data(self, model: type[ModelType], data_id: int | str) -> BaseModel | None:
+    async def get_single_data(self, model: Type[ModelType], data_id: int | str) -> BaseModel | None:
         """Get single data from database."""
         if isinstance(data_id, str):
             data_id = int(data_id.strip())
@@ -108,17 +131,19 @@ class DataInterface:
             logger.error(f"Error retrieving data {data_id}: {e}")
             return None
     
-    async def get_single_rawnews(self, id: int | str) -> RawNewsItem | None:
+    async def get_single_rawnews(self, raw_id: int | str) -> RawNewsItem | None:
         """Retrieve a single raw news item from database."""
-        return await self.get_single_data(RawNewsDB, id)
+        result = await self.get_single_data(RawNewsDB, raw_id)
+        return cast(RawNewsItem | None, result)
         
-    async def get_single_news(self, id: int | str) -> NewsItem | None:
+    async def get_single_news(self, news_id: int | str) -> NewsItem | None:
         """Retrieve a single news item from database."""
-        return await self.get_single_data(NewsDB, id)
+        result = await self.get_single_data(NewsDB, news_id)
+        return cast(NewsItem | None, result)
     
     async def update_data(
         self, 
-        model: type[ModelType], 
+        model: Type[ModelType], 
         data_id: int | str, 
         updates: Dict[str, Any] | BaseModel
     ) -> BaseModel | Dict[str, Any] | None:
