@@ -52,7 +52,7 @@ def render_panel(database: DataInterface, logout_callback=None) -> None:
         st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
 
         # Refresh button
-        if st.button("Refresh Data", width='stretch', key='sidebar_refresh', type='primary'):
+        if st.button("⟳ Refresh Data", width='stretch', key='sidebar_refresh', type='primary'):
             st.cache_data.clear()
             try:
                 st.session_state.news_data = fetch_news_data(database)

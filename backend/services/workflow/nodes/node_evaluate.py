@@ -23,12 +23,12 @@ class NewsEvaluationNode:
         )
         self.editor_beta = NewsEditor(
             platform="OpenAI", 
-            model_name="gpt-5", 
+            model_name="gpt-5.4", 
             temperature=temperature
         )
         self.editor_gamma = NewsEditor(
-            platform="Mistral", 
-            model_name="mistral-medium-latest", 
+            platform="Anthropic", 
+            model_name="claude-sonnet-4-6", 
             temperature=temperature
         )
         
@@ -79,12 +79,6 @@ class NewsEvaluationNode:
                 goto=END
             )
         
-        # get the coverage nodes for the next moves
-        coverage_nodes = [
-            f"subgraph_{item.lower()}" 
-            for item in evaluation["coverage_depth"]
-        ]
-    
         # track the evaluation result
         await tracker.track({
             "id": raw_id,
@@ -92,50 +86,50 @@ class NewsEvaluationNode:
                 "evaluation": evaluation
             }
         })
-        
+
+        # Always go to flash first; graph handles conditional deep dive after
         return Command(
             update={
                 "status": NewsStatus.EVALUATED,
                 "evaluation": evaluation
-            }, 
-            goto=coverage_nodes
+            },
+            goto="subgraph_flash"
         )
 
-    def _process_evaluation(self, raw_id: str, evaluation_results: List[Dict[str, Any]]) -> Tuple[Dict[str, Any], int]   :
+    def _process_evaluation(self, raw_id: str, evaluation_results: List[Dict[str, Any]]) -> Tuple[Dict[str, Any], int]:
         """Process the evaluation results and return a tuple of evaluation data."""
-        
-        # Check the evaluation results
+
         decision_votes = 0
-        evaluation = {
+        deep_dive_votes = 0
+        evaluation: Dict[str, Any] = {
             "research": [],
             "editorial_note": [],
-            "coverage_depth": set()
+            "deep_dive": False,
         }
-        
-        for result in evaluation_results:        
+
+        for result in evaluation_results:
             if not result:
                 continue
-            
+
             # Count the decision votes
             decision = result.get("final_decision", "")
             if isinstance(decision, str) and decision.upper() == "YES":
                 decision_votes += 1
             else:
                 continue
-            
+
+            # Count deep dive votes
+            if result.get("deep_dive"):
+                deep_dive_votes += 1
+
             # Add research items
             if research := result.get("additional_research", []):
                 evaluation["research"].extend(research)
 
             if editorial_note := result.get("editorial_note", ""):
                 evaluation["editorial_note"].append(editorial_note)
-            
-            # Add coverage depth to sets
-            if coverage_depth := result.get("coverage_depth", ""):
-                evaluation["coverage_depth"].add(coverage_depth)
 
-        # always add flash to the coverage depth    
-        # evaluation["coverage_depth"].add('FLASH')
-        evaluation["coverage_depth"] = ["FLASH"] # temporary only flash
-        
+        # Majority vote: deep dive if 2+ editors recommend it
+        evaluation["deep_dive"] = deep_dive_votes >= 2
+
         return evaluation, decision_votes

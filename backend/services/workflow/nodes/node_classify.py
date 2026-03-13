@@ -11,8 +11,8 @@ from backend.services.workflow.agents import ClassificationAgent
 class ClassificationNode:
     def __init__(
         self, 
-        platform: str = "Anthropic",
-        model_name: str | None = "claude-sonnet-4-0",
+        platform: str = "Google",
+        model_name: str | None = "gemini-2.5-flash",
         temperature: float | None = None,
     ) -> None:
         """Initialize the ClassificationNode."""
@@ -23,7 +23,7 @@ class ClassificationNode:
             temperature=temperature,
         )
 
-    async def __call__(self, state: NewsState) -> Dict[str, Any]:
+    async def __call__(self, state: NewsState) -> Command:
 
         # Get the news data and validate it
         raw_data = state["raw_news"]
@@ -70,16 +70,6 @@ class ClassificationNode:
                 goto=END
             )
         
-        # Check if the news is negative domestic news
-        if classification["sentiment"] == "NEGATIVE" and classification["geolocation"] == ["CHINA"]:
-            await tracker.log(raw_id, "Curator rejected the content since it's negative domestic news.")
-            await tracker.track({"id": raw_id, "status": "failed"})
-            return Command(
-                update={"status": NewsStatus.REJECTED},
-                goto=END
-            )
-            
-            
         # update the state and goto the next node
         return Command(
             update={

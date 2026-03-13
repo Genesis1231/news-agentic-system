@@ -72,23 +72,18 @@ class Newsroom:
         # Apply dashboard style
         apply_dashboard_style()
         
-        # Initialize session state variables
+        # Initialize session state variables (only if not already set)
         defaults = {
             'selected_news': None,
-            'status_filter': "All",
-            'source_filter': "All",
+            'search_query': "",
+            'status_filter': [],
+            'source_filter': [],
             'sort_by': "Newest First"
         }
-        
+
         for key, value in defaults.items():
             if key not in st.session_state:
                 st.session_state[key] = value
-        
-        # Initialize filter values in session state
-        st.session_state.search_query = ""
-        st.session_state.status_filter = "All"
-        st.session_state.source_filter = "All"
-        st.session_state.sort_by = "Newest First"
 
     def login(self) -> bool:
         """Handle user authentication"""

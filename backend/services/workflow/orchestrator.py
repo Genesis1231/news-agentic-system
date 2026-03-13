@@ -1,6 +1,6 @@
 import asyncio
 import traceback
-from typing import Dict, List, Any, Set
+from typing import Any
 from config import logger
 
 from backend.core.redis import RedisManager, RedisQueue
@@ -31,8 +31,8 @@ class FlowOrchestrator:
         self.redis_client: RedisManager = RedisManager(service="Orchestrator")
         self.database: DataInterface = DataInterface(service="Orchestrator")
            
-        self.active_flows: Dict[str, FlowGraph] = {}
-        self._active_tasks: Set[asyncio.Task] = set()
+        self.active_flows: dict[str, FlowGraph] = {}
+        self._active_tasks: set[asyncio.Task] = set()
         self._running: bool = False
         self.sleep_time: int = sleep_time
         
@@ -61,8 +61,8 @@ class FlowOrchestrator:
             except Exception as e:
                 logger.error(f"Error in main processing loop: {e}")
                 
-    
-    async def immediate(self, content_id: str) -> Dict[str, Any] | None:
+    # for testing purposes.
+    async def immediate(self, content_id: str) -> dict[str, Any] | None:
         """
         Process a single news item immediately without queueing.
         This is used for testing and debugging.

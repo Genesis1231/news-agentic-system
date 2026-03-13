@@ -13,7 +13,7 @@ class NewsItem(BaseModel):
     #classification
     depth: str = Field(..., description="Depth of the news item")
     news_category: List[str] = Field(..., description="Category of the news item")
-    geolocation: List[str] = Field(..., description="Geolocation of the news item")
+    news_type: List[str] = Field(..., description="Type of the news item")
     
     # Content fields
     title: str = Field(default="", description="Title of the news item")

@@ -14,7 +14,7 @@ class NewsDB(BaseDB):
     # Classification fields
     depth: Mapped[str] = mapped_column(String(16), default="")
     news_category: Mapped[List[str]] = mapped_column(JSON, default=list)
-    geolocation: Mapped[List[str]] = mapped_column(JSON, default=list)
+    news_type: Mapped[List[str]] = mapped_column(JSON, default=list)
     
     # Content fields
     title: Mapped[str] = mapped_column(String(1024), default="")

@@ -39,13 +39,10 @@ Evaluate the provided story through the framework to determine if it has excepti
       * If decided YES: Suggest one unique and engaging angle to captivate the target audience on Youtube.
       * If decided NO: State primary rejection reason.
 
-   - 'coverage_depth': 
-      Choose the most suitable video coverage depth:
-         * "FLASH": Quick update, breaking alert (under 60 seconds).
-         * "BRIEF": Short summary with essential context (1-2 minutes).
-         * "ANALYSIS": In-depth report with insights (2-5 minutes).
-         * "DEEP_DIVE": Comprehensive feature with multiple perspectives (5-10 minutes).
-         * "N/A": If decided not to develop the story.
+   - 'deep_dive':
+      Decide whether this story warrants in-depth research and analysis beyond a flash report.
+         * true: The story is complex, high-impact, or requires multi-source verification. Worth investing in deep research, summarization, and long-form scripting.
+         * false: A quick flash report is sufficient to cover the story.
 
    - 'additional_research': (return [] if 'final_decision' is NO.)
       List top 3 additional research needed to enrich the story. Typical areas:

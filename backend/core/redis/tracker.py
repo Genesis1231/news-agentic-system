@@ -143,15 +143,9 @@ class Tracker:
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         
         try:
-            # First check if item exists without fetching all data
-            exists = await self.redis_client.exists(item_key)
-            if not exists:
-                logger.error(f"News item {id} does not exist. Cannot log message.")
-                return
-            
             # Format log entry
             log_entry = f"{timestamp} - {message}"
-            
+
             # Get existing logs and append new log entry
             current_logs = await self.redis_client.hget(item_key, "log")
             if current_logs is not None:

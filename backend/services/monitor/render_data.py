@@ -117,14 +117,17 @@ def _build_details(raw, news_items) -> dict:
             "sentiment": raw.sentiment or "N/A",
             "relevance": raw.relevance or 0.0,
             "entities": raw.entities or [],
-            "score": raw.potential_impact_score,
+            "score": f"{raw.impact_score:.0f}/100" if raw.impact_score else "0/100",
         },
     }
 
     if news_items:
         # Build evaluation with coverage depths
         depths = [ni.depth for ni in news_items if ni.depth]
-        details["evaluation"] = {"coverage_depth": depths if depths else ["FLASH"]}
+        details["evaluation"] = {
+            "coverage_depth": depths if depths else ["FLASH"],
+            "deep_dive": any(d.upper() != "FLASH" for d in depths) if depths else False,
+        }
 
         # Per-depth fields
         for ni in news_items:

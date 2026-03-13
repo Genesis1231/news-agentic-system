@@ -120,8 +120,8 @@ def apply_dashboard_style() -> None:
 
         /* ── Buttons ───────────────────────────────── */
         .stButton button[kind="primary"] {
-            background-color: var(--accent) !important;
-            color: var(--bg-base) !important;
+            background-color: #c0392b !important;
+            color: #ffffff !important;
             border: none !important;
             font-family: 'DM Sans', sans-serif !important;
             font-weight: 600 !important;
@@ -129,21 +129,21 @@ def apply_dashboard_style() -> None:
             transition: all 0.2s ease;
         }
         .stButton button[kind="primary"]:hover {
-            filter: brightness(1.1);
+            background-color: #e74c3c !important;
             transform: translateY(-1px);
         }
 
         .stButton button[kind="secondary"] {
             border: none !important;
-            color: var(--accent) !important;
-            background-color: var(--accent-dim) !important;
+            color: #ffffff !important;
+            background-color: #2980b9 !important;
             font-family: 'DM Sans', sans-serif !important;
             font-weight: 500 !important;
             border-radius: var(--radius-sm) !important;
             transition: all 0.2s ease;
         }
         .stButton button[kind="secondary"]:hover {
-            background-color: rgba(212, 168, 67, 0.25) !important;
+            background-color: #3498db !important;
         }
 
         .stButton button[kind="tertiary"] {

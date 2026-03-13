@@ -160,7 +160,7 @@ class RawNewsItem(BaseModel):
     def merge_classification(self, data: Dict[str, Any]) -> "RawNewsItem":
         """ Merge classification data to RawNewsItem."""
         try:
-            for field in ['title', 'news_category', 'geolocation', 'source_level', 
+            for field in ['title', 'news_category', 'news_type', 'source_level', 
             'sentiment', 'entities', 'relevance', "text"]:
                 setattr(self, field, data.get(field, getattr(self, field)))
         except Exception as e:

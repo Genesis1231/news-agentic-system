@@ -64,7 +64,7 @@ class Classification(BaseModel):
     entities: List[str] = Field(..., description="The entities mentioned in the content")  
     
     
-    @field_validator('news_category', 'geolocation', 'entities', mode='before')
+    @field_validator('news_category', 'news_type', 'entities', mode='before')
     def ensure_list(cls, v):
         if isinstance(v, str):
             logger.warning(f"Invalid single value {v}, converted to list")
@@ -86,14 +86,12 @@ class Classification(BaseModel):
         
     @field_validator('sentiment', mode='before')
     def validate_priority(cls, v):
-        if not isinstance(v, str) or v not in ENUM_SENTIMENT:
-            logger.warning(f"Invalid sentiment value: {v}, defaulting to NEUTRAL")
-            return "NEUTRAL"
-        return v
-    
+        if isinstance(v, str):
+            return v.upper()
+        return "NEUTRAL"
+
     @field_validator('source_level', mode='before')
     def validate_source_level(cls, v):
-        if not isinstance(v, str) or v not in ENUM_SOURCE_LEVEL:
-            logger.warning(f"Invalid source level value: {v}, defaulting to TERTIARY")
-            return "TERTIARY"
-        return v
+        if isinstance(v, str):
+            return v.upper()
+        return "TERTIARY"

@@ -24,7 +24,7 @@ def render_news_detail_page(news: pd.Series, logs: List[str] | None = None) -> N
         return
 
     # Back button
-    if st.button("Back to Newsroom", key="back_button", type="tertiary"):
+    if st.button("<< Back to Newsroom", key="back_button", type="tertiary"):
         st.session_state.selected_news = None
         st.rerun()
 
@@ -64,8 +64,10 @@ def render_news_detail_page(news: pd.Series, logs: List[str] | None = None) -> N
         st.subheader("Classification", anchor=False)
         render_classification(details)
 
-    # Coverage depth tabs
+    # Coverage depth tabs — always FLASH, optionally DEEP
     coverage = details.get('evaluation', {}).get('coverage_depth', ["FLASH"])
+    if not coverage:
+        coverage = ["FLASH"]
     coverage_tabs = [f"**{item.capitalize()} News**" for item in coverage]
     for i, tab in enumerate(st.tabs(coverage_tabs)):
         with tab:

@@ -1,6 +1,6 @@
 from config import logger
 from langgraph.graph import StateGraph, END
-
+from langgraph.graph.state import CompiledStateGraph
 from backend.core.database import DataInterface
 from backend.core.redis import RedisManager
 
@@ -23,121 +23,121 @@ class FlowGraph:
     def __init__(self, database: DataInterface, redis: RedisManager) -> None:
         self.database: DataInterface = database
         self.redis_client: RedisManager = redis
-        self.workflow: StateGraph | None = None
+        self.workflow: CompiledStateGraph | None = None
         self._initialized: bool = False
+
+        # Shared node instances — created once, reused across subgraphs
+        self._write_node = WritingNode()
+        self._review_node = ReviewNode()
+        self._finalize_node = FinalizeNode(
+            database=self.database,
+            redis_client=self.redis_client
+        )
+        self._research_node = ResearchNode()
+        self._summarize_node = SummarizationNode()
+
+    def _build_flash_subgraph(self) -> CompiledStateGraph:
+        """Compile the flash subgraph."""
         
+        subgraph = StateGraph(SubNewsState)
+        subgraph.add_node("node_write", self._write_node)
+        subgraph.add_node("node_review", self._review_node)
+        subgraph.add_node("node_finalize", self._finalize_node)
+        subgraph.set_entry_point("node_write")
+        return subgraph.compile()
+
+    def _build_deep_subgraph(self) -> CompiledStateGraph:
+        """Compile the deep subgraph."""
+        
+        subgraph = StateGraph(SubNewsState)
+        subgraph.add_node("node_research", self._research_node)
+        subgraph.add_node("node_summarize", self._summarize_node)
+        subgraph.add_node("node_write", self._write_node)
+        subgraph.add_node("node_review", self._review_node)
+        subgraph.add_node("node_finalize", self._finalize_node)
+        subgraph.set_entry_point("node_research")
+        return subgraph.compile()
+
+    @staticmethod
+    def _route_after_flash(state: NewsState) -> str:
+        """After flash completes, check if editors recommended a deep dive."""
+        if state.get("evaluation", {}).get("deep_dive"):
+            return "subgraph_deep"
+        return END
+
     async def initialize(self) -> None:
-        """Create a news processing workflow graph."""
-        
+        """Create and compile the news processing workflow graph."""
+        # Pre-compile subgraphs once, store for use by wrapper methods
+        self._flash_subgraph = self._build_flash_subgraph()
+        self._deep_subgraph = self._build_deep_subgraph()
+
         graph = StateGraph(NewsState)
         graph.add_node("node_initialize", InitializationNode(database=self.database))
         graph.add_node("node_classify", ClassificationNode())
         graph.add_node("node_evaluate", NewsEvaluationNode())
         graph.set_entry_point("node_initialize")
-        
-        # Subgraphs
-        graph.add_node("subgraph_flash", self._create_flash_subgraph)
-        graph.add_node("subgraph_brief", self._create_brief_subgraph)
-        graph.add_node("subgraph_analysis", self._create_analysis_subgraph)
-        
+
+        # Evaluate always routes to flash via Command(goto="subgraph_flash")
+        graph.add_node("subgraph_flash", self._run_flash)
+
+        # After flash, conditionally route to deep
+        graph.add_conditional_edges("subgraph_flash", self._route_after_flash, {
+            "subgraph_deep": "subgraph_deep",
+            END: END,
+        })
+
+        graph.add_node("subgraph_deep", self._run_deep)
+        graph.add_edge("subgraph_deep", END)
+
         self.workflow = graph.compile()
         self._initialized = True
-        
-    async def process(self, data_id: str)-> NewsState | None:
+
+    async def _run_flash(self, state: NewsState) -> dict:
+        """Invoke the pre-compiled flash subgraph with depth injected."""
+        return await self._flash_subgraph.ainvoke({
+            "status": state["status"],
+            "depth": "FLASH",
+            "raw_news": state["raw_news"],
+            "evaluation": state["evaluation"],
+        })
+
+    async def _run_deep(self, state: NewsState) -> dict:
+        """Invoke the pre-compiled deep subgraph with depth injected."""
+        return await self._deep_subgraph.ainvoke({
+            "status": state["status"],
+            "depth": "DEEP",
+            "raw_news": state["raw_news"],
+            "evaluation": state["evaluation"],
+        })
+
+    async def process(self, data_id: str) -> NewsState | None:
         """Process the news item through the workflow."""
-        
         if not self._initialized:
             await self.initialize()
-            
+
+        if not self.workflow:
+            logger.error("Workflow graph is not initialized.")
+            return None
+        
         try:
             return await self.workflow.ainvoke({
                 "status": NewsStatus.PENDING,
                 "id": data_id
-            })
-            
+            }) #type: ignore
         except Exception as e:
             logger.error(f"Error running workflow: {e}")
             return None
 
-    async def _create_flash_subgraph(self, state: NewsState) -> StateGraph:
-        """Subgraph for time-sensitive breaking news."""
-        subgraph = StateGraph(SubNewsState)            
-        subgraph.add_node("node_write", WritingNode())
-        subgraph.add_node("node_review", ReviewNode())
-        subgraph.add_node("node_finalize", FinalizeNode(
-            database=self.database,
-            redis_client=self.redis_client
-        ))
-        
-        # set the entry point to the write node
-        subgraph.add_edge("node_write", "node_review")
-        subgraph.set_entry_point("node_write")
-        
-        # invoke the subgraph with the initial state
-        sub_workflow = subgraph.compile()
-        return await sub_workflow.ainvoke({
-            "status": state["status"],
-            "depth": "FLASH",   
-            "raw_news": state["raw_news"],
-            "evaluation": state["evaluation"],
-        })
-
-    async def _create_brief_subgraph(self, state: NewsState) -> StateGraph:
-        """Subgraph for brief analysis pieces."""
-        subgraph = StateGraph(SubNewsState)
-        subgraph.add_node("node_research", ResearchNode())
-        subgraph.add_node("node_summarize", SummarizationNode())
-        subgraph.add_node("node_write", WritingNode())
-        subgraph.add_node("node_review", ReviewNode())
-        subgraph.add_node("node_finalize", FinalizeNode(
-            database=self.database,
-            redis_client=self.redis_client
-        ))
-        
-        subgraph.set_entry_point("node_research")
-        sub_workflow = subgraph.compile()
-        return await sub_workflow.ainvoke({
-            "status": state["status"],
-            "depth": "BRIEF",   
-            "raw_news": state["raw_news"],
-            "evaluation": state["evaluation"],
-        })
-
-    async def _create_analysis_subgraph(self, state: NewsState) -> StateGraph:
-        """Subgraph for in-depth analysis."""
-        subgraph = StateGraph(SubNewsState)
-        subgraph.add_node("node_research", ResearchNode())
-        subgraph.add_node("node_summarize", SummarizationNode())
-        subgraph.add_node("node_write", WritingNode())
-        subgraph.add_node("node_review", ReviewNode())
-        subgraph.add_node("node_finalize", FinalizeNode(
-            database=self.database,
-            redis_client=self.redis_client
-        ))
-        
-        subgraph.set_entry_point("node_research")
-        sub_workflow = subgraph.compile()
-        return await sub_workflow.ainvoke({
-            "status": state["status"],
-            "depth": "ANALYSIS",   
-            "raw_news": state["raw_news"],
-            "evaluation": state["evaluation"],
-        })
-            
     async def __aenter__(self):
         await self.initialize()
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.cleanup()
-            
+
     async def cleanup(self):
-        """Close the workflow graph and release all resources.  """
-        try:
-            # Clear the workflow nodes if initialized
-            if self.workflow:
-                self.workflow.nodes.clear()
-                self.workflow = None
-        except Exception as e:
-            raise Exception(f"Error during workflow graph cleanup: {str(e)}")
+        """Release workflow resources."""
+        if self.workflow:
+            self.workflow = None
+        self._initialized = False
         

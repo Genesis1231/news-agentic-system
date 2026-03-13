@@ -2,7 +2,7 @@ import os
 import asyncio
 from datetime import datetime, timedelta, timezone
 from config import logger, configuration
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any
 
 from apify_client import ApifyClientAsync
 
@@ -56,8 +56,8 @@ class TwitterReporter(BaseReporter):
         self.tracker: Tracker = tracker
         
         self.actor_id: str = configuration["apify"]["actor_twitter"]
-        self.fetched_ids: Set[str] = set()
-        self.twitter_accounts: List[str] = []
+        self.fetched_ids: set[str] = set()
+        self.twitter_accounts: list[str] = []
     
     async def initialize(self) -> None:
         """Initialize the Twitter Aggregator."""
