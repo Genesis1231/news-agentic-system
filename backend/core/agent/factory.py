@@ -1,5 +1,6 @@
 import os
 from config import logger
+from pydantic import SecretStr
 from langchain_core.language_models import BaseLanguageModel
 from typing import Dict, Callable, Any
 from functools import lru_cache, partial
@@ -83,7 +84,8 @@ class ModelFactory:
     def get_model(self, **config: Dict[str, Any]) -> BaseLanguageModel:
         """Get an instance of the specified LLM model."""
         
-        if platform := config.get("platform"):
+        platform = str(config.get("platform"))
+        if platform:
             platform = platform.upper()
         else:
             raise ValueError("Platform is required")
@@ -102,7 +104,7 @@ class ModelFactory:
         temperature = config.get("temperature") or 0.8
         
         try:
-            return ChatGroq(model_name=model_name, 
+            return ChatGroq(model=model_name, 
                             temperature=temperature, 
                             max_tokens=2048)
             
@@ -142,7 +144,7 @@ class ModelFactory:
         
         try:
             return ChatOpenAI(
-                model_name=model_name, 
+                model=model_name, 
                 temperature=temperature,
             )
             
@@ -195,6 +197,7 @@ class ModelFactory:
             return ChatAnthropic(
                 model_name=model_name, 
                 temperature=temperature,
+                timeout=30   
             )
             
         except Exception as e:
@@ -210,7 +213,7 @@ class ModelFactory:
     
         try:
             return ChatXAI(
-                model_name=model_name, 
+                model=model_name, 
                 temperature=temperature,
             )    
             
@@ -226,11 +229,14 @@ class ModelFactory:
         temperature = config.get("temperature") or 1
         
         try:
-            api_key = os.getenv("DEEPSEEK_API_KEY")
+            api_key = SecretStr(os.getenv("DEEPSEEK_API_KEY"))
+            if not api_key:
+                raise ValueError("DEEPSEEK_API_KEY environment variable is not set.")
+            
             return ChatOpenAI(
-                api_key=api_key, 
+                api_key=api_key,
                 base_url="https://api.deepseek.com", 
-                model_name=model_name, 
+                model=model_name, 
                 temperature=temperature,
             )
             
@@ -247,8 +253,9 @@ class ModelFactory:
         
         try:
             return ChatPerplexity(
-                model_name=model_name, 
+                model=model_name, 
                 temperature=temperature,
+                timeout=30
             )
         
         except Exception as e:

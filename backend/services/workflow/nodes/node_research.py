@@ -1,95 +1,91 @@
-import json
 from config import logger
 from typing import Dict, Any
 from langgraph.types import Command
 from langgraph.graph import END
 
+from backend.core.redis import tracker
 from backend.services.workflow.state import SubNewsState, NewsStatus
-from backend.services.workflow.agents import NewsResearcher
-from backend.utils.search import TavilySearch
+from backend.services.workflow.agents import NewsResearcher, ResearchEvaluator
 
 
 class ResearchNode:
-    def __init__(
-        self, 
-        platform: str = "Anthropic", 
-        model_name: str = "claude-sonnet-4-0",
-        temperature: float = 0.5
-    ) -> None:
-        self.query_agent = NewsResearcher(
-            platform=platform, 
-            model_name=model_name, 
-            temperature=temperature
-        )
-        self.search_agent = TavilySearch()
-        
+    def __init__(self, max_rounds: int = 10) -> None:
+        self.max_rounds = max_rounds
+        self.researcher = NewsResearcher()
+        self.evaluator = ResearchEvaluator()
+
     async def __call__(self, state: SubNewsState) -> Command:
 
-        # Get the news item
         news_data = state["raw_news"]
+        raw_id = str(news_data.id)
         evaluations = state["evaluation"]
-        
-        if not (research_items := evaluations.get("research_notes") or not any(research_items)):
-            return Command(goto="node_writer")
-    
-        ### if the news is in flash depth, skip the research node
-        ### or the news is in brief depth and already has a link, then no need to research
- 
-        # Generate the research plans
-        research_results = await self.query_agent.research(news_data, research_items)
-        logger.debug(json.dumps(research_results,indent=2))
-        
-        if not any(research_results):
-            # this is unlikely to happen
-            return Command(
-                update={
-                    "status": NewsStatus.FAILED, 
-                    "error": [{"node": "node_research", 
-                               "error_message": "Failed to generate research plans"}]
-                },
-                goto=END
-            )
-        
-        # get the research plans and search it with the search agent
-        # still need social media search
-        researches = [
-            {
-                "type": research.get("type"), 
-                "query": research.get("query"), 
-                "domain_name": research.get("domain_name", "")
-            }
-            for research in research_results.research_plans
-            if research["type"] != "social_search"
-        ]
 
-        search_results = await self.search_agent.search_web(researches)
-        
-        if search_results:
-            return Command(
-                update={
-                    "research": {
-                        "outlines": research_results.outlines,
-                        "content": search_results
-                    },
-                },
-                goto="node_summarize"
+        research_topics = evaluations.get("research", [])
+        if not research_topics:
+            return Command(goto="node_write")
+
+        await tracker.log(raw_id, "Starting deep research...")
+
+        accumulated_notes = []
+        remaining_topics = research_topics
+
+        for round_num in range(self.max_rounds):
+            await tracker.log(
+                raw_id,
+                f"Research round {round_num + 1}/{self.max_rounds}: "
+                f"researching {len(remaining_topics)} topics"
             )
-            
-        # if the search results are empty
-        research_count = state.get("research", {}).get("count", 0)
-        if research_count >= 2:
+
+            # Research current topics via Perplexity
+            notes = await self.researcher.research(
+                news_item=news_data,
+                topics=remaining_topics,
+                accumulated_notes="\n\n".join(accumulated_notes)
+            )
+
+            if not notes:
+                logger.warning(f"Round {round_num + 1}: empty research response")
+                continue
+
+            accumulated_notes.append(notes)
+
+            # Evaluate completeness
+            evaluation = await self.evaluator.evaluate(
+                news_item=news_data,
+                original_topics=research_topics,
+                accumulated_notes="\n\n".join(accumulated_notes)
+            )
+
+            if evaluation.get("sufficient") or not evaluation.get("gaps"):
+                await tracker.log(
+                    raw_id,
+                    f"Research sufficient after {round_num + 1} rounds. "
+                    f"{evaluation.get('analysis', '')}"
+                )
+                break
+
+            # Narrow focus to identified gaps
+            remaining_topics = evaluation["gaps"]
+            await tracker.log(raw_id, f"Gaps identified: {remaining_topics}")
+
+        if not accumulated_notes:
+            await tracker.log(raw_id, "Research failed — no results after all rounds.")
             return Command(
                 update={
                     "status": NewsStatus.FAILED,
-                    "error": [{"node": "node_research", 
-                           "error_message": "Failed to generate research plans"}]
+                    "error": [{"node": "node_research",
+                               "error_message": "Failed to gather research"}]
                 },
                 goto=END
             )
 
+        research_notes = "\n\n".join(accumulated_notes)
+        await tracker.log(raw_id, f"Research complete. {len(accumulated_notes)} rounds of notes collected.")
+
         return Command(
             update={
-                "research": {"count": research_count + 1 }
+                "status": NewsStatus.RESEARCHED,
+                "research": {"research_notes": research_notes}
             },
-            goto="node_research"
+            goto="node_write"
         )

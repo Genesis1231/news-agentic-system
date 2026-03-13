@@ -10,7 +10,6 @@ from .nodes import (
     ClassificationNode,
     ResearchNode,
     NewsEvaluationNode,
-    SummarizationNode,
     WritingNode,
     ReviewNode,
     FinalizeNode
@@ -34,7 +33,6 @@ class FlowGraph:
             redis_client=self.redis_client
         )
         self._research_node = ResearchNode()
-        self._summarize_node = SummarizationNode()
 
     def _build_flash_subgraph(self) -> CompiledStateGraph:
         """Compile the flash subgraph."""
@@ -51,7 +49,6 @@ class FlowGraph:
         
         subgraph = StateGraph(SubNewsState)
         subgraph.add_node("node_research", self._research_node)
-        subgraph.add_node("node_summarize", self._summarize_node)
         subgraph.add_node("node_write", self._write_node)
         subgraph.add_node("node_review", self._review_node)
         subgraph.add_node("node_finalize", self._finalize_node)

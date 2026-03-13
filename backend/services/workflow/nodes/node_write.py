@@ -12,7 +12,7 @@ class WritingNode:
     def __init__(
         self, 
         platform: str = "Anthropic", 
-        model_name: str | None = "opus-4-6",
+        model_name: str | None = "claude-opus-4-6",
         temperature: float | None = 1.0,
     ) -> None:
         """Initialize the WriterNode."""

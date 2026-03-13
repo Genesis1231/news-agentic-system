@@ -11,8 +11,8 @@ from backend.services.workflow.agents import ChiefEditor
 class ReviewNode:
     def __init__(
         self,
-        platform: str = "DeepSeek", 
-        model_name: str | None = "deepseek-chat",
+        platform: str = "OpenAI", 
+        model_name: str | None = "chatgpt-5.4",
         temperature: float | None = 0.6,
     ) -> None:
         """Initialize the ReviewNode."""
@@ -22,7 +22,7 @@ class ReviewNode:
             temperature=temperature,
         )
 
-    async def __call__(self, state: SubNewsState) -> Dict[str, Any]:
+    async def __call__(self, state: SubNewsState) -> Dict[str, Any] | Command:
 
         # Get the data from the state
         raw_data = state["raw_news"]
@@ -31,7 +31,7 @@ class ReviewNode:
         script = state["draft"]
 
         # track the processing
-        await tracker.log(raw_id, f"Chief editor is reviewing the {depth} script.")
+        await tracker.log(str(raw_id), f"Chief editor is reviewing the {depth} script.")
         
         final_review = await self.agent.review(
             news_item=raw_data, 
@@ -40,14 +40,14 @@ class ReviewNode:
         
         # If no final review is generated, return an error.
         if not final_review:
-            await tracker.log(raw_id, f"Failed to approve {depth} script. Please check the logs.")
+            await tracker.log(str(raw_id), f"Failed to approve {depth} script. Please check the logs.")
             return Command(
                 update={ "status": NewsStatus.FAILED },
                 goto=END
             )
         
         # log the final review
-        await tracker.log(raw_id, f"Chief editor: {json.dumps(final_review, indent=4)}")
+        await tracker.log(str(raw_id), f"Chief editor: {json.dumps(final_review, indent=4)}")
         
         # Format the final output from the reviews
         approved = self.approve_script(final_review, depth)
@@ -56,7 +56,7 @@ class ReviewNode:
             count = state.get("revision", {}).get("count", 0)
             if count > 2:
                 # TODO: send to human editor
-                await tracker.log(raw_id, f"Revised more than 3 times for {depth} script. Send to human editor.")
+                await tracker.log(str(raw_id), f"Revised more than 3 times for {depth} script. Send to human editor.")
                 return Command(
                     update={ "status": NewsStatus.FAILED },
                     goto=END
@@ -68,14 +68,14 @@ class ReviewNode:
                 "count": count + 1,
             }
             
-            await tracker.log(raw_id, f"{depth} script need revision, send back to the writer.")
+            await tracker.log(str(raw_id), f"{depth} script need revision, send back to the writer.")
             return Command(
                 update={ "revision": revisions },
                 goto="node_write"
             )
             
         # If all scripts are approved, goto the final output.
-        await tracker.log(raw_id, f"Chief editor has approved {depth} script.")
+        await tracker.log(str(raw_id), f"Chief editor has approved {depth} script.")
         
         # Update the confidence of the news
         # raw_data.confidence = (88 + (final_review.get("source_integrity") + 
@@ -94,12 +94,26 @@ class ReviewNode:
             logger.error(f"Invalid final review: {final_review} or script depth: {script_depth}")
             return False
             
+        source_integrity = final_review.get("source_integrity", 0)
+        storytelling = final_review.get("storytelling", 0)
+        hook_effectiveness = final_review.get("hook_effectiveness", 0)
+        value_density = final_review.get("value_density", 0)
+        engagement_potential = final_review.get("engagement_potential", 0)
+
         if script_depth.upper() == "FLASH":
             return (
-                final_review.get("source_integrity") >= 8 and
-                final_review.get("storytelling") >= 7 and
-                final_review.get("hook_effectiveness") >= 8
+                source_integrity >= 8 and
+                storytelling >= 7 and
+                hook_effectiveness >= 8
             )
 
-        return True
-    
+        if script_depth.upper() == "DEEP":
+            return (
+                source_integrity >= 8 and
+                storytelling >= 8 and
+                value_density >= 8 and
+                hook_effectiveness >= 7 and
+                engagement_potential >= 7
+            )
+
+        return False

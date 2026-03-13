@@ -4,7 +4,8 @@ import asyncio
 
 from backend.core.redis import RedisManager, RedisQueue, tracker
 from backend.core.database import DataInterface
-from backend.services.workflow.state import NewsPriority  
+from backend.services.workflow.state import NewsPriority
+from backend.utils.uploaders.r2 import R2Uploader
 from .multimedia_manager import MultimediaManager
 
 
@@ -30,7 +31,8 @@ class ProductionDirector:
         self.redis_client: RedisManager = RedisManager(service="Production")
         self.database: DataInterface = DataInterface(service="Production")
         self.multimedia_manager = MultimediaManager()
-        
+        self.r2_uploader = R2Uploader()
+
         self._running: bool = False
         self._sleep_time: int = sleep_time
         self._active_tasks: Set[asyncio.Task] = set()
@@ -92,12 +94,18 @@ class ProductionDirector:
             production_result = await self.multimedia_manager.produce_news(news_id, news_data)
             
             if production_result:
+                # Upload audio to R2 (best-effort)
+                audio_url = await self.r2_uploader.upload_audio(production_result["audio_path"])
+                if audio_url:
+                    production_result["audio_path"] = audio_url
+
                 # Update production status and push to redis queue
                 production_result["is_produced"] = True
-                
-                # Run database update and Redis push concurrently
                 await self.database.update_news(news_id, production_result)
                 await self.redis_client.push(RedisQueue.PRODUCED, news_id)
+
+                # Update stories.json index on R2 (best-effort)
+                await self.r2_uploader.update_stories_index(self.database)
 
             else:
                 logger.error(f"Production failed for news (ID:{news_id or 'Undefined'})")

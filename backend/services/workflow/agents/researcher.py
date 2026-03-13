@@ -4,29 +4,23 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from backend.models.data import RawNewsItem
 from backend.utils.prompt import load_prompt
-from backend.models.schema.outputs import ResearchOutput
-
+from backend.models.schema.outputs import ResearchEvaluation
 from backend.core.agent import BaseAgent
 
 
 class NewsResearcher(BaseAgent):
     """
-    A LLM agent that conducts research on news content.
-    
-    Attributes:
-        platform (str): The identifier for the selected LLM platform (e.g., "OLLAMA", "GROQ").
-        model_name (str): The name of the LLM model (e.g., "llama3.1:70b").
-        base_url (str): The base URL for API connections, defaults to localhost for local models.
-        temperature (float): The temperature for the LLM model.
+    Perplexity-backed research agent that searches the web and synthesizes
+    information for news content creation.
     """
-    
+
     def __init__(
         self,
-        platform: str,
-        model_name: str | None = None,
+        platform: str = "Perplexity",
+        model_name: str | None = "sonar-pro",
         base_url: str | None = None,
-        temperature: float = 0.0
-    )-> None:
+        temperature: float = 0.1
+    ) -> None:
         super().__init__(
             config = {
                 "name": "Research Agent",
@@ -34,57 +28,145 @@ class NewsResearcher(BaseAgent):
                 "model_name": model_name,
                 "base_url": base_url,
                 "temperature": temperature,
-                "output_format": ResearchOutput
+                # No output_format — Perplexity returns free text with citations
             }
         )
-    
-    def build_user_prompt(self, news_item: RawNewsItem, research_items: List[str]) -> str:
-        """Get the user prompt for the research agent"""
-            
-        # build the user prompt 
-        research_items = "\n    - ".join(research_items)
-        user_prompt = f"""
-            Here is the related content:
-            <content>
+
+    def _build_prompt(
+        self,
+        news_item: RawNewsItem,
+        topics: List[str],
+        accumulated_notes: str = ""
+    ) -> str:
+        """Build the user prompt for Perplexity research."""
+
+        topics_str = "\n    - ".join(topics)
+        prompt = f"""
+            Research the following topics thoroughly:
+            <research_topics>
+                - {topics_str}
+            </research_topics>
+
+            News context:
+            <source_content>
                 Media: {news_item.source_name}
-                Author: {news_item.author.name}({news_item.author.idname})
+                Author: {news_item.author.name} ({news_item.author.idname})
                 Time: {news_item.timestamp}
                 ----------------------------------
                 {news_item.text}
-            </content>
-        
-            Now, proceed to generate research plans for the following:
-            <research_outlines>
-                - {research_items}
-            </research_outlines>
-        
-            Output strictly in provided JSON schema.
+            </source_content>
         """
-        return user_prompt 
 
-        
-    async def research(self, news_item: RawNewsItem, research_outlines: List[str]) -> Dict[str, Any] | None:
-        """Main response function that build the prompt and get response from LLM"""
-        
-        if not research_outlines:
-            logger.error("Empty research_outlines provided")
+        if accumulated_notes:
+            prompt += f"""
+            Previous research findings (avoid repeating, focus on gaps):
+            <previous_findings>
+                {accumulated_notes}
+            </previous_findings>
+            """
+
+        prompt += "\n            Provide detailed, well-organized research notes."
+        return prompt
+
+    async def research(
+        self,
+        news_item: RawNewsItem,
+        topics: List[str],
+        accumulated_notes: str = ""
+    ) -> str | None:
+        """Research topics via Perplexity and return synthesized findings."""
+
+        if not topics:
+            logger.error("Empty topics provided")
             return None
-        
-        # load the system prompt and user prompt
-        system_prompt = load_prompt("research_content") 
-        user_prompt = self.build_user_prompt(news_item, research_outlines)
-        
+
+        system_prompt = load_prompt("research_content")
+        user_prompt = self._build_prompt(news_item, topics, accumulated_notes)
+
         prompt = ChatPromptTemplate([
             ("system", system_prompt),
             ("user", user_prompt),
         ])
-        
+
         try:
-            logger.debug(f"Generating research queries...")
-            response: ResearchOutput = await self._invoke(prompt.format_messages())
-            
-            return response.model_dump()
-        
+            logger.debug(f"Researching {len(topics)} topics via Perplexity...")
+            response = await self._invoke(prompt.format_messages())
+            return response.content
+
         except Exception as e:
-            logger.error(f"Failed to create research plans: {e}")
+            logger.error(f"Failed to research topics: {e}")
             return None
+
+
+class ResearchEvaluator(BaseAgent):
+    """
+    Evaluates whether accumulated research is sufficient for writing,
+    and identifies remaining knowledge gaps.
+    """
+
+    def __init__(
+        self,
+        platform: str = "Google",
+        model_name: str | None = "gemini-2.5-flash",
+        base_url: str | None = None,
+        temperature: float = 0.1
+    ) -> None:
+        super().__init__(
+            config = {
+                "name": "Research Evaluator",
+                "platform": platform,
+                "model_name": model_name,
+                "base_url": base_url,
+                "temperature": temperature,
+                "output_format": ResearchEvaluation,
+            }
+        )
+
+    async def evaluate(
+        self,
+        news_item: RawNewsItem,
+        original_topics: List[str],
+        accumulated_notes: str
+    ) -> Dict[str, Any]:
+        """Evaluate research completeness and identify gaps."""
+
+        system_prompt = load_prompt("evaluate_research")
+        topics_str = "\n    - ".join(original_topics)
+
+        user_prompt = f"""
+            Original research topics:
+            <research_topics>
+                - {topics_str}
+            </research_topics>
+
+            News context:
+            <source_content>
+                {news_item.composed_content}
+            </source_content>
+
+            Accumulated research notes:
+            <research_notes>
+                {accumulated_notes}
+            </research_notes>
+
+            Evaluate the research completeness and identify any critical gaps.
+            Output strictly in provided JSON schema.
+        """
+
+        prompt = ChatPromptTemplate([
+            ("system", system_prompt),
+            ("user", user_prompt),
+        ])
+
+        try:
+            logger.debug("Evaluating research completeness...")
+            response: ResearchEvaluation = await self._invoke(prompt.format_messages())
+            return response.model_dump()
+
+        except Exception as e:
+            logger.error(f"Failed to evaluate research: {e}")
+            return {
+                "sufficient": False,
+                "gaps": original_topics,
+                "analysis": "Evaluation failed"
+            }

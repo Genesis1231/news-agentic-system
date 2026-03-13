@@ -30,7 +30,14 @@ class ResearchNoteOutput(BaseModel):
     """Output format for the research note"""
     analysis: str = Field(..., description="Concise curation analysis.")
     notes: str = Field(..., description="Comprehensive research notes.")
-    
+
+
+class ResearchEvaluation(BaseModel):
+    """Output format for research completeness evaluation"""
+    analysis: str = Field(..., description="Brief analysis of current research coverage and quality.")
+    sufficient: bool = Field(default=False, description="Whether the accumulated research is sufficient for comprehensive writing.")
+    gaps: List[str] = Field(default_factory=list, description="Specific knowledge gaps that need further research. Empty if sufficient.")
+
 
 class ScriptOutput(BaseModel):
     """Output format for the news script"""
