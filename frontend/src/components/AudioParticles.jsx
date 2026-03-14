@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 const N_PARTICLES = 120;
 const DAMPING = 0.85;
@@ -70,48 +70,13 @@ function drawParticles(ctx, particles, factor) {
   }
 }
 
-const AudioParticles = ({ isPlaying, audioRef }) => {
+// Particles driven by simulated intensity.
+// When R2 CORS is configured, can add AnalyserNode for real audio reactivity.
+const AudioParticles = ({ isPlaying }) => {
   const canvasRef = useRef(null);
   const particlesRef = useRef(null);
   const frameRef = useRef(0);
   const rafRef = useRef(null);
-  const analyserRef = useRef(null);
-  const audioCtxRef = useRef(null);
-  const useAnalyserRef = useRef(false);
-
-  // Try to connect analyser — works for same-origin audio, fails silently for cross-origin
-  const ensureAnalyser = useCallback(() => {
-    if (analyserRef.current) return;
-    const audio = audioRef?.current;
-    if (!audio) return;
-
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.8;
-
-      const source = ctx.createMediaElementSource(audio);
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
-
-      audioCtxRef.current = ctx;
-      analyserRef.current = analyser;
-      useAnalyserRef.current = true;
-    } catch (e) {
-      // Cross-origin or other issue — fall back to simulated intensity
-      useAnalyserRef.current = false;
-    }
-  }, [audioRef]);
-
-  useEffect(() => {
-    if (isPlaying) {
-      ensureAnalyser();
-      if (audioCtxRef.current?.state === 'suspended') {
-        audioCtxRef.current.resume();
-      }
-    }
-  }, [isPlaying, ensureAnalyser]);
 
   // Canvas resize
   useEffect(() => {
@@ -140,7 +105,6 @@ const AudioParticles = ({ isPlaying, audioRef }) => {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    const dataArray = new Uint8Array(128);
 
     const animate = () => {
       if (!particlesRef.current) {
@@ -148,28 +112,10 @@ const AudioParticles = ({ isPlaying, audioRef }) => {
         return;
       }
 
-      let intensity = 0;
-
-      if (isPlaying && useAnalyserRef.current && analyserRef.current) {
-        // Real audio data available (same-origin)
-        analyserRef.current.getByteFrequencyData(dataArray);
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-        intensity = sum / (dataArray.length * 255);
-        // If analyser returns all zeros (CORS tainted), switch to simulation
-        if (intensity === 0) {
-          useAnalyserRef.current = false;
-        }
-      }
-
-      if (isPlaying && !useAnalyserRef.current) {
-        // Simulated intensity — organic pulsing
+      let intensity = 0.02; // idle
+      if (isPlaying) {
         const t = Date.now() / 1000;
         intensity = 0.3 + Math.sin(t * 1.8) * 0.12 + Math.sin(t * 4.3) * 0.08;
-      }
-
-      if (!isPlaying) {
-        intensity = 0.02;
       }
 
       const rect = canvas.parentElement.getBoundingClientRect();
@@ -182,11 +128,6 @@ const AudioParticles = ({ isPlaying, audioRef }) => {
     animate();
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [isPlaying]);
-
-  // Cleanup
-  useEffect(() => {
-    return () => audioCtxRef.current?.close();
-  }, []);
 
   return (
     <canvas

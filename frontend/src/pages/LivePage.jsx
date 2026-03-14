@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Pause, ChevronDown, ChevronUp, Volume2 } from 'lucide-react';
+import { Play, Pause, ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-react';
 import { format } from 'date-fns';
 import BurstLogo from '../components/BurstLogo';
 import AudioParticles from '../components/AudioParticles';
@@ -17,9 +17,10 @@ const ALL_TAGS = [
 ];
 
 const LivePage = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true); // autoplay
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [expandedId, setExpandedId] = useState(MOCK_STORIES[0].id);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -34,11 +35,19 @@ const LivePage = () => {
     const audio = audioRef.current;
     if (!audio) return;
     if (isPlaying) {
-      audio.play().catch(() => {});
+      audio.play().catch(() => {
+        // Browser blocked autoplay — switch to paused state
+        setIsPlaying(false);
+      });
     } else {
       audio.pause();
     }
   }, [isPlaying]);
+
+  // Mute/unmute
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.muted = isMuted;
+  }, [isMuted]);
 
   // Update audio src when track changes
   useEffect(() => {
@@ -47,12 +56,13 @@ const LivePage = () => {
     audio.src = currentStory.audio_url;
     audio.load();
     setProgress(0);
+    setAudioError(false);
     if (isPlaying) {
       audio.play().catch(() => {});
     }
   }, [currentIndex]);
 
-  // Real progress from audio timeupdate
+  // Audio events
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -70,17 +80,17 @@ const LivePage = () => {
     };
 
     const onError = () => setAudioError(true);
-    const onCanPlay = () => setAudioError(false);
+    const onPlaying = () => setAudioError(false);
 
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('error', onError);
-    audio.addEventListener('canplay', onCanPlay);
+    audio.addEventListener('playing', onPlaying);
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
-      audio.removeEventListener('canplay', onCanPlay);
+      audio.removeEventListener('playing', onPlaying);
     };
   }, [currentIndex]);
 
@@ -95,9 +105,10 @@ const LivePage = () => {
     return rest.filter((s) => s.entities.includes(activeFilter));
   }, [activeFilter, currentStory.id]);
 
+  const isLive = isPlaying && !audioError;
+
   return (
     <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
-      {/* Hidden audio element */}
       <audio ref={audioRef} src={MOCK_STORIES[0].audio_url} preload="auto" />
 
       <nav className="shrink-0 border-b border-white/[0.06] bg-black/60 backdrop-blur-xl">
@@ -110,18 +121,18 @@ const LivePage = () => {
               </span>
             </Link>
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
-              audioError
-                ? 'border-zinc-600/30 bg-zinc-600/[0.06]'
-                : 'border-red-500/20 bg-red-500/[0.06]'
+              isLive
+                ? 'border-red-500/20 bg-red-500/[0.06]'
+                : 'border-zinc-600/30 bg-zinc-600/[0.06]'
             }`}>
               <span className="relative flex h-2 w-2">
-                {!audioError && (
+                {isLive && (
                   <span className="absolute inset-0 rounded-full bg-red-500" style={{ animation: 'pulse-ring 1.5s ease-out infinite' }} />
                 )}
-                <span className={`relative rounded-full h-2 w-2 ${audioError ? 'bg-zinc-500' : 'bg-red-500'}`} />
+                <span className={`relative rounded-full h-2 w-2 ${isLive ? 'bg-red-500' : 'bg-zinc-500'}`} />
               </span>
-              <span className={`text-[11px] font-bold tracking-[0.25em] uppercase ${audioError ? 'text-zinc-500' : 'text-red-400'}`}>
-                {audioError ? 'Off Air' : 'On Air'}
+              <span className={`text-[11px] font-bold tracking-[0.25em] uppercase ${isLive ? 'text-red-400' : 'text-zinc-500'}`}>
+                {isLive ? 'On Air' : 'Off Air'}
               </span>
             </div>
           </div>
@@ -141,8 +152,8 @@ const LivePage = () => {
           <p className="text-xs text-purple-400/70">{currentStory.category[0]}</p>
         </div>
         <span className="relative flex h-2 w-2 shrink-0">
-          <span className="absolute inset-0 rounded-full bg-red-500" style={{ animation: 'pulse-ring 1.5s ease-out infinite' }} />
-          <span className="relative rounded-full h-2 w-2 bg-red-500" />
+          {isLive && <span className="absolute inset-0 rounded-full bg-red-500" style={{ animation: 'pulse-ring 1.5s ease-out infinite' }} />}
+          <span className={`relative rounded-full h-2 w-2 ${isLive ? 'bg-red-500' : 'bg-zinc-500'}`} />
         </span>
       </div>
 
@@ -152,7 +163,7 @@ const LivePage = () => {
 
           {/* LEFT: RADIO */}
           <aside className="hidden md:flex w-1/2 shrink-0 flex-col relative overflow-hidden">
-            <AudioParticles isPlaying={isPlaying} audioRef={audioRef} />
+            <AudioParticles isPlaying={isPlaying} />
 
             {/* Controls + title */}
             <div className="relative z-10 mt-auto px-10 pb-[18%]">
@@ -170,7 +181,15 @@ const LivePage = () => {
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <Volume2 className="w-4 h-4 text-zinc-600 shrink-0" />
+                <button
+                  onClick={() => setIsMuted((m) => !m)}
+                  className="hover:text-zinc-400 transition-colors shrink-0"
+                >
+                  {isMuted
+                    ? <VolumeX className="w-4 h-4 text-zinc-600" />
+                    : <Volume2 className="w-4 h-4 text-zinc-600" />
+                  }
+                </button>
               </div>
 
               {/* Now playing info */}
