@@ -23,6 +23,7 @@ const LivePage = () => {
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [expandedId, setExpandedId] = useState(MOCK_STORIES[0].id);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [audioError, setAudioError] = useState(false);
   const audioRef = useRef(null);
 
   const currentStory = MOCK_STORIES[currentIndex];
@@ -68,11 +69,18 @@ const LivePage = () => {
       setExpandedId(MOCK_STORIES[next].id);
     };
 
+    const onError = () => setAudioError(true);
+    const onCanPlay = () => setAudioError(false);
+
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
+    audio.addEventListener('canplay', onCanPlay);
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
+      audio.removeEventListener('canplay', onCanPlay);
     };
   }, [currentIndex]);
 
@@ -101,12 +109,20 @@ const LivePage = () => {
                 burst.fm
               </span>
             </Link>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-red-500/20 bg-red-500/[0.06]">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
+              audioError
+                ? 'border-zinc-600/30 bg-zinc-600/[0.06]'
+                : 'border-red-500/20 bg-red-500/[0.06]'
+            }`}>
               <span className="relative flex h-2 w-2">
-                <span className="absolute inset-0 rounded-full bg-red-500" style={{ animation: 'pulse-ring 1.5s ease-out infinite' }} />
-                <span className="relative rounded-full h-2 w-2 bg-red-500" />
+                {!audioError && (
+                  <span className="absolute inset-0 rounded-full bg-red-500" style={{ animation: 'pulse-ring 1.5s ease-out infinite' }} />
+                )}
+                <span className={`relative rounded-full h-2 w-2 ${audioError ? 'bg-zinc-500' : 'bg-red-500'}`} />
               </span>
-              <span className="text-[11px] font-bold tracking-[0.25em] text-red-400 uppercase">On Air</span>
+              <span className={`text-[11px] font-bold tracking-[0.25em] uppercase ${audioError ? 'text-zinc-500' : 'text-red-400'}`}>
+                {audioError ? 'Off Air' : 'On Air'}
+              </span>
             </div>
           </div>
         </div>
