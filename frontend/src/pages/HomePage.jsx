@@ -43,12 +43,11 @@ const HomePage = () => {
 
             {/* Start Listening CTA */}
             <div className="flex justify-center">
-              <Link
-                to="/live"
-                className="px-8 py-3.5 bg-blue-600 text-white rounded-xl font-medium text-lg hover:bg-blue-700 transition-all duration-200"
+              <span
+                className="px-8 py-3.5 bg-zinc-700 text-zinc-400 rounded-xl font-medium text-lg cursor-not-allowed"
               >
-                Start Listening
-              </Link>
+                Coming Soon
+              </span>
             </div>
           </div>
         </div>

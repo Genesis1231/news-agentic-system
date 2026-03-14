@@ -44,10 +44,11 @@ const LivePage = () => {
     }
   }, [isPlaying]);
 
-  // Mute/unmute
+  // Mute/unmute — set imperatively since React doesn't reliably update audio attributes
   useEffect(() => {
-    if (audioRef.current) audioRef.current.muted = isMuted;
-  }, [isMuted]);
+    const audio = audioRef.current;
+    if (audio) audio.muted = isMuted;
+  }, [isMuted, currentIndex]);
 
   // Update audio src when track changes
   useEffect(() => {
@@ -109,7 +110,7 @@ const LivePage = () => {
 
   return (
     <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
-      <audio ref={audioRef} src={MOCK_STORIES[0].audio_url} preload="auto" />
+      <audio ref={audioRef} src={MOCK_STORIES[0].audio_url} preload="auto" muted={isMuted} crossOrigin="anonymous" />
 
       <nav className="shrink-0 border-b border-white/[0.06] bg-black/60 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between">
@@ -163,7 +164,7 @@ const LivePage = () => {
 
           {/* LEFT: RADIO */}
           <aside className="hidden md:flex w-1/2 shrink-0 flex-col relative overflow-hidden">
-            <AudioParticles isPlaying={isPlaying} />
+            <AudioParticles isPlaying={isPlaying} audioRef={audioRef} />
 
             {/* Controls + title */}
             <div className="relative z-10 mt-auto px-10 pb-[18%]">

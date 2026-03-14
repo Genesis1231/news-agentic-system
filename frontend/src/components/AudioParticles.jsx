@@ -70,13 +70,54 @@ function drawParticles(ctx, particles, factor) {
   }
 }
 
-// Particles driven by simulated intensity.
-// When R2 CORS is configured, can add AnalyserNode for real audio reactivity.
-const AudioParticles = ({ isPlaying }) => {
+const AudioParticles = ({ isPlaying, audioRef }) => {
   const canvasRef = useRef(null);
   const particlesRef = useRef(null);
   const frameRef = useRef(0);
   const rafRef = useRef(null);
+  const analyserRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const dataArrayRef = useRef(null);
+
+  // Set up Web Audio API analyser (once per audio element)
+  useEffect(() => {
+    const audio = audioRef?.current;
+    if (!audio) return;
+
+    // Reuse if already connected (survives component remounts)
+    if (audio._burstAnalyser) {
+      analyserRef.current = audio._burstAnalyser;
+      audioCtxRef.current = audio._burstCtx;
+      dataArrayRef.current = new Uint8Array(audio._burstAnalyser.frequencyBinCount);
+      return;
+    }
+
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = ctx.createMediaElementSource(audio);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyser.connect(ctx.destination);
+
+      // Tag element so we never double-connect
+      audio._burstCtx = ctx;
+      audio._burstAnalyser = analyser;
+
+      audioCtxRef.current = ctx;
+      analyserRef.current = analyser;
+      dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
+    } catch (e) {
+      console.warn('AudioParticles: Web Audio setup failed, using simulated mode', e);
+    }
+  }, [audioRef]);
+
+  // Resume AudioContext on play (browser autoplay policy)
+  useEffect(() => {
+    if (isPlaying && audioCtxRef.current?.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+  }, [isPlaying]);
 
   // Canvas resize
   useEffect(() => {
@@ -114,8 +155,20 @@ const AudioParticles = ({ isPlaying }) => {
 
       let intensity = 0.02; // idle
       if (isPlaying) {
-        const t = Date.now() / 1000;
-        intensity = 0.3 + Math.sin(t * 1.8) * 0.12 + Math.sin(t * 4.3) * 0.08;
+        const analyser = analyserRef.current;
+        const dataArray = dataArrayRef.current;
+        if (analyser && dataArray) {
+          // Real audio-reactive intensity from frequency data
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          intensity = (sum / dataArray.length) / 255;
+          intensity = Math.max(intensity, 0.05);
+        } else {
+          // Fallback: simulated
+          const t = Date.now() / 1000;
+          intensity = 0.3 + Math.sin(t * 1.8) * 0.12 + Math.sin(t * 4.3) * 0.08;
+        }
       }
 
       const rect = canvas.parentElement.getBoundingClientRect();
