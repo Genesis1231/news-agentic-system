@@ -4,7 +4,8 @@ import { Play, Pause, ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-re
 import { format } from 'date-fns';
 import BurstLogo from '../components/BurstLogo';
 import AudioParticles from '../components/AudioParticles';
-import { MOCK_STORIES, CATEGORIES, DEPTH_CONFIG } from '../data/mockStories';
+import Subtitles from '../components/Subtitles';
+import { MOCK_STORIES, CATEGORIES } from '../data/mockStories';
 
 const CATEGORY_KEYS = new Set(CATEGORIES.map((c) => c.key));
 
@@ -25,10 +26,10 @@ const LivePage = () => {
   const [expandedId, setExpandedId] = useState(MOCK_STORIES[0].id);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [audioError, setAudioError] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const audioRef = useRef(null);
 
   const currentStory = MOCK_STORIES[currentIndex];
-  const depth = DEPTH_CONFIG[currentStory.depth] || DEPTH_CONFIG.FLASH;
 
   // Play/pause audio
   useEffect(() => {
@@ -109,7 +110,7 @@ const LivePage = () => {
   const isLive = isPlaying && !audioError;
 
   return (
-    <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-black text-white flex flex-col">
       <audio ref={audioRef} src={MOCK_STORIES[0].audio_url} preload="auto" muted={isMuted} crossOrigin="anonymous" />
 
       <nav className="shrink-0 border-b border-white/[0.06] bg-black/60 backdrop-blur-xl">
@@ -159,15 +160,31 @@ const LivePage = () => {
       </div>
 
       {/* 50/50 split */}
-      <div className="flex-1 min-h-0 flex justify-center">
-        <div className="w-full max-w-7xl flex min-h-0">
+      <div className="flex-1 flex justify-center">
+        <div className="w-full max-w-7xl flex">
 
           {/* LEFT: RADIO */}
-          <aside className="hidden md:flex w-1/2 shrink-0 flex-col relative overflow-hidden">
+          <aside className="hidden md:flex w-1/2 shrink-0 flex-col relative overflow-hidden sticky top-0 h-screen">
             <AudioParticles isPlaying={isPlaying} audioRef={audioRef} />
 
+            {/* Audio error */}
+            {audioError && (
+              <div className="relative z-10 flex items-center justify-center gap-2 px-6 py-3 mx-10 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                <VolumeX className="w-4 h-4 shrink-0" />
+                <span>Audio unavailable — check your connection or try another story</span>
+              </div>
+            )}
+
+            {/* Spacer pushes subtitles + controls to bottom */}
+            <div className="flex-1" />
+
+            {/* Subtitles — between particles and controls */}
+            <div className="relative z-10 mb-6">
+              <Subtitles subtitleUrl={currentStory.subtitle_url} audioRef={audioRef} />
+            </div>
+
             {/* Controls + title */}
-            <div className="relative z-10 mt-auto px-10 pb-[18%]">
+            <div className="relative z-10 px-10 mb-[30%]">
               {/* Slim play bar */}
               <div className="flex items-center gap-3 mb-5">
                 <button
@@ -197,10 +214,6 @@ const LivePage = () => {
               <div className="flex items-center gap-2.5 mb-3">
                 <span className="px-2.5 py-1 rounded text-xs font-bold tracking-wider uppercase bg-purple-500/10 text-purple-400 border border-purple-500/20">
                   {currentStory.category[0]}
-                </span>
-                <span className={`flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase ${depth.color}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${depth.dot}`} />
-                  {depth.label}
                 </span>
               </div>
               <h2 className="text-2xl font-semibold leading-snug">
@@ -243,7 +256,7 @@ const LivePage = () => {
             </div>
 
             {/* Stories */}
-            <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.06) transparent' }}>
+            <div className="flex-1">
               <div className="p-6">
                 {/* Now playing */}
                 <div
@@ -255,8 +268,6 @@ const LivePage = () => {
                       <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                       NOW PLAYING
                     </span>
-                    <span className="text-zinc-800">|</span>
-                    <span>{depth.label.toLowerCase()}</span>
                     {currentStory.category.map((cat) => (
                       <span key={cat}><span className="text-zinc-800 mx-1">|</span>{cat.toLowerCase()}</span>
                     ))}
@@ -281,8 +292,7 @@ const LivePage = () => {
                   </div>
                 )}
 
-                {feedStories.map((story) => {
-                  const d = DEPTH_CONFIG[story.depth] || DEPTH_CONFIG.FLASH;
+                {(showAll ? feedStories : feedStories.slice(0, 5)).map((story) => {
                   const time = format(new Date(story.published_at), 'HH:mm');
                   const isExpanded = expandedId === story.id;
 
@@ -294,8 +304,6 @@ const LivePage = () => {
                     >
                       <div className="flex items-center gap-2 mb-2 text-xs text-zinc-600 capitalize">
                         <span className="font-mono">{time}</span>
-                        <span className="text-zinc-800">|</span>
-                        <span>{d.label.toLowerCase()}</span>
                         {story.category.map((cat) => (
                           <span key={cat}><span className="text-zinc-800 mx-1">|</span>{cat.toLowerCase()}</span>
                         ))}
@@ -315,11 +323,24 @@ const LivePage = () => {
                     </div>
                   );
                 })}
+
+                {!showAll && feedStories.length > 5 && (
+                  <button
+                    onClick={() => setShowAll(true)}
+                    className="w-full py-4 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+                  >
+                    Show {feedStories.length - 5} more stories
+                  </button>
+                )}
               </div>
             </div>
           </main>
         </div>
       </div>
+      {/* Footer */}
+      <footer className="px-4 pt-24 pb-8 text-center text-sm text-zinc-600 font-light">
+        © 2026 Burst.fm. All rights reserved.
+      </footer>
     </div>
   );
 };

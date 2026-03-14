@@ -30,7 +30,11 @@ class R2Uploader:
         self._stories_limit = r2_config.get("stories_limit", 50)
 
     async def upload_audio(self, local_path: str) -> Optional[str]:
-        """Upload an audio file to R2 and return its public URL."""
+        """Upload an audio file and its companion subtitle JSON to R2.
+
+        Subtitle is expected at the same path with .json extension.
+        Returns the public URL of the audio file (subtitle URL is derived by replacing .mp3 → .json).
+        """
         path = Path(local_path)
         if not path.exists():
             logger.error(f"Audio file not found: {local_path}")
@@ -49,6 +53,20 @@ class R2Uploader:
             )
             public_url = f"{self._public_url}/{r2_key}"
             logger.info(f"Uploaded audio to R2: {public_url}")
+
+            # Upload companion subtitle JSON if it exists
+            subtitle_path = path.with_suffix(".json")
+            if subtitle_path.exists():
+                sub_key = f"audio/{date_str}/{subtitle_path.name}"
+                await asyncio.to_thread(
+                    self._client.upload_file,
+                    str(subtitle_path),
+                    self._bucket,
+                    sub_key,
+                    ExtraArgs={"ContentType": "application/json"},
+                )
+                logger.info(f"Uploaded subtitle to R2: {self._public_url}/{sub_key}")
+
             return public_url
 
         except ClientError as e:
@@ -71,6 +89,8 @@ class R2Uploader:
 
             stories = []
             for item in news_items:
+                audio_url = item.audio_path or ""
+                subtitle_url = audio_url.rsplit(".", 1)[0] + ".json" if audio_url else ""
                 stories.append({
                     "id": item.id,
                     "title": item.title,
@@ -78,7 +98,8 @@ class R2Uploader:
                     "category": item.news_category or [],
                     "entities": item.entities or [],
                     "depth": item.depth,
-                    "audio_url": item.audio_path or "",
+                    "audio_url": audio_url,
+                    "subtitle_url": subtitle_url,
                     "cover_image": item.cover_image or "",
                     "published_at": (
                         item.created_at.isoformat()

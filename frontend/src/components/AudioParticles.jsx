@@ -4,7 +4,7 @@ const N_PARTICLES = 120;
 const DAMPING = 0.85;
 
 function createParticles(w, h) {
-  const cx = w / 2, cy = h * 0.38;
+  const cx = w / 2, cy = h * 0.30;
   const particles = [];
   for (let i = 0; i < N_PARTICLES; i++) {
     const angle = (2 * Math.PI * i) / N_PARTICLES;
@@ -21,7 +21,7 @@ function createParticles(w, h) {
 }
 
 function updateParticles(particles, intensity, frame, w, h) {
-  const cx = w / 2, cy = h * 0.38;
+  const cx = w / 2, cy = h * 0.30;
   const safe = Math.max(intensity, 0);
   const factor = Math.sqrt(safe) * 3;
   const t = frame * 0.03;

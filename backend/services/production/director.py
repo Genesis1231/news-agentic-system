@@ -94,8 +94,10 @@ class ProductionDirector:
             production_result = await self.multimedia_manager.produce_news(news_id, news_data)
             
             if production_result:
-                # Upload audio to R2 (best-effort)
-                audio_url = await self.r2_uploader.upload_audio(production_result["audio_path"])
+                # Upload raw TTS audio + subtitle JSON to R2 (subtitle-synced)
+                tts_audio_path = production_result.pop("tts_audio_path", None)
+                upload_path = tts_audio_path or production_result["audio_path"]
+                audio_url = await self.r2_uploader.upload_audio(upload_path)
                 if audio_url:
                     production_result["audio_path"] = audio_url
 

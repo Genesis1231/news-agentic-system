@@ -70,10 +70,14 @@ class MultimediaManager:
         try:
             # Wait for the future to complete with a timeout
             result = await asyncio.wait_for(future, timeout=self._timeout)
-            
+
+            # Attach raw TTS audio path for R2 upload (synced with subtitles)
+            if result:
+                result["tts_audio_path"] = audio_path
+
             # track the production result
             await tracker.log(str(news_data.raw_id), f"{news_depth.capitalize()} news production completed: {json.dumps(result, indent=2)}")
-            
+
             return result
         
         except asyncio.TimeoutError:

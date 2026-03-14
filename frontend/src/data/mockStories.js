@@ -1,4 +1,6 @@
-const R2_BASE = 'https://pub-c163d15064354af0a8ac3b349f32512d.r2.dev';
+const R2_BASE = import.meta.env.PROD
+  ? 'https://pub-c163d15064354af0a8ac3b349f32512d.r2.dev'
+  : '';
 
 export const MOCK_STORIES = [
   {
@@ -9,6 +11,7 @@ export const MOCK_STORIES = [
     entities: ["OpenAI", "GPT-5", "Sam Altman"],
     depth: "SCOOP",
     audio_url: `${R2_BASE}/audio/track-01.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-01.json`,
     cover_image: "",
     published_at: "2026-03-14T10:30:00Z",
   },
@@ -20,6 +23,7 @@ export const MOCK_STORIES = [
     entities: ["Boston Dynamics", "Atlas Gen-3", "Hyundai"],
     depth: "SCOOP",
     audio_url: `${R2_BASE}/audio/track-02.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-02.json`,
     cover_image: "",
     published_at: "2026-03-14T09:45:00Z",
   },
@@ -31,6 +35,7 @@ export const MOCK_STORIES = [
     entities: ["Google", "Willow II", "Hartmut Neven"],
     depth: "DEEP_DIVE",
     audio_url: `${R2_BASE}/audio/track-03.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-03.json`,
     cover_image: "",
     published_at: "2026-03-14T09:15:00Z",
   },
@@ -42,6 +47,7 @@ export const MOCK_STORIES = [
     entities: ["SpaceX", "Starship", "NASA", "Lunar Gateway"],
     depth: "FLASH",
     audio_url: `${R2_BASE}/audio/track-04.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-04.json`,
     cover_image: "",
     published_at: "2026-03-14T08:30:00Z",
   },
@@ -53,6 +59,7 @@ export const MOCK_STORIES = [
     entities: ["Vertex Pharmaceuticals", "CRISPR Therapeutics", "FDA"],
     depth: "ANALYSIS",
     audio_url: `${R2_BASE}/audio/track-05.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-05.json`,
     cover_image: "",
     published_at: "2026-03-14T07:50:00Z",
   },
@@ -64,6 +71,7 @@ export const MOCK_STORIES = [
     entities: ["Linux Foundation", "CVE-2026-1847", "CISA"],
     depth: "FLASH",
     audio_url: `${R2_BASE}/audio/track-06.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-06.json`,
     cover_image: "",
     published_at: "2026-03-14T07:15:00Z",
   },
@@ -75,6 +83,7 @@ export const MOCK_STORIES = [
     entities: ["Anthropic", "Google", "Spark Capital", "Claude"],
     depth: "BRIEF",
     audio_url: `${R2_BASE}/audio/track-07.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-07.json`,
     cover_image: "",
     published_at: "2026-03-14T06:30:00Z",
   },
@@ -86,6 +95,7 @@ export const MOCK_STORIES = [
     entities: ["Apple", "M5 Ultra", "TSMC", "Geekbench"],
     depth: "BRIEF",
     audio_url: `${R2_BASE}/audio/track-08.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-08.json`,
     cover_image: "",
     published_at: "2026-03-14T05:45:00Z",
   },
@@ -97,6 +107,7 @@ export const MOCK_STORIES = [
     entities: ["European Parliament", "EU AI Act", "Thierry Breton"],
     depth: "ANALYSIS",
     audio_url: `${R2_BASE}/audio/track-09.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-09.json`,
     cover_image: "",
     published_at: "2026-03-14T04:20:00Z",
   },
@@ -108,6 +119,7 @@ export const MOCK_STORIES = [
     entities: ["NASA", "Perseverance", "Jezero Crater", "JPL"],
     depth: "DEEP_DIVE",
     audio_url: `${R2_BASE}/audio/track-10.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-10.json`,
     cover_image: "",
     published_at: "2026-03-14T03:00:00Z",
   },
@@ -119,6 +131,7 @@ export const MOCK_STORIES = [
     entities: ["IBM", "Quantum Network", "Q-Day"],
     depth: "SCOOP",
     audio_url: `${R2_BASE}/audio/track-11.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-11.json`,
     cover_image: "",
     published_at: "2026-03-14T01:30:00Z",
   },
@@ -130,6 +143,7 @@ export const MOCK_STORIES = [
     entities: ["Neuralink", "FDA", "StarCraft III"],
     depth: "FLASH",
     audio_url: `${R2_BASE}/audio/track-12.mp3`,
+    subtitle_url: `${R2_BASE}/audio/track-12.json`,
     cover_image: "",
     published_at: "2026-03-13T23:45:00Z",
   },
