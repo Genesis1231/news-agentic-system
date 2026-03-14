@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Pause, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Pause, ChevronDown, ChevronUp, Volume2 } from 'lucide-react';
 import { format } from 'date-fns';
 import BurstLogo from '../components/BurstLogo';
 import AudioParticles from '../components/AudioParticles';
@@ -8,7 +8,6 @@ import { MOCK_STORIES, CATEGORIES, DEPTH_CONFIG } from '../data/mockStories';
 
 const CATEGORY_KEYS = new Set(CATEGORIES.map((c) => c.key));
 
-// Unified tag list: categories first, then unique entities
 const ALL_TAGS = [
   ...CATEGORIES.map((c) => ({ label: c.label, value: c.key })),
   ...[...new Set(MOCK_STORIES.flatMap((s) => s.entities))].sort().map((e) => ({
@@ -22,26 +21,60 @@ const LivePage = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [activeFilter, setActiveFilter] = useState('ALL');
-  const [expandedId, setExpandedId] = useState(null);
+  const [expandedId, setExpandedId] = useState(MOCK_STORIES[0].id);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const audioRef = useRef(null);
 
   const currentStory = MOCK_STORIES[currentIndex];
   const depth = DEPTH_CONFIG[currentStory.depth] || DEPTH_CONFIG.FLASH;
 
-  // Auto-advance through stories when playing
+  // Play/pause audio
   useEffect(() => {
-    if (!isPlaying) return;
-    const id = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          setCurrentIndex((i) => (i + 1) % MOCK_STORIES.length);
-          return 0;
-        }
-        return p + 0.15;
-      });
-    }, 100);
-    return () => clearInterval(id);
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
   }, [isPlaying]);
+
+  // Update audio src when track changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.src = currentStory.audio_url;
+    audio.load();
+    setProgress(0);
+    if (isPlaying) {
+      audio.play().catch(() => {});
+    }
+  }, [currentIndex]);
+
+  // Real progress from audio timeupdate
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => {
+      if (audio.duration && isFinite(audio.duration)) {
+        setProgress((audio.currentTime / audio.duration) * 100);
+      }
+    };
+
+    const onEnded = () => {
+      const next = (currentIndex + 1) % MOCK_STORIES.length;
+      setCurrentIndex(next);
+      setExpandedId(MOCK_STORIES[next].id);
+    };
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('ended', onEnded);
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, [currentIndex]);
 
   const toggleExpand = useCallback((id) => {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -56,14 +89,26 @@ const LivePage = () => {
 
   return (
     <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
+      {/* Hidden audio element */}
+      <audio ref={audioRef} src={MOCK_STORIES[0].audio_url} crossOrigin="anonymous" preload="auto" />
+
       <nav className="shrink-0 border-b border-white/[0.06] bg-black/60 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-8 py-6 flex items-center">
-          <Link to="/" className="flex items-center gap-3 group">
-            <BurstLogo size={28} />
-            <span className="text-2xl font-semibold tracking-tight text-white/90 group-hover:text-white transition-colors">
-              burst.fm
-            </span>
-          </Link>
+        <div className="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-5">
+            <Link to="/" className="flex items-center gap-3 group">
+              <BurstLogo size={28} />
+              <span className="text-2xl font-semibold tracking-tight text-white/90 group-hover:text-white transition-colors">
+                burst.fm
+              </span>
+            </Link>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-red-500/20 bg-red-500/[0.06]">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inset-0 rounded-full bg-red-500" style={{ animation: 'pulse-ring 1.5s ease-out infinite' }} />
+                <span className="relative rounded-full h-2 w-2 bg-red-500" />
+              </span>
+              <span className="text-[11px] font-bold tracking-[0.25em] text-red-400 uppercase">On Air</span>
+            </div>
+          </div>
         </div>
       </nav>
 
@@ -90,40 +135,41 @@ const LivePage = () => {
         <div className="w-full max-w-7xl flex min-h-0">
 
           {/* LEFT: RADIO */}
-          <aside className="hidden md:flex w-1/2 shrink-0 flex-col items-center justify-center relative overflow-hidden">
-            {/* Particle visualization */}
-            <AudioParticles isPlaying={isPlaying} />
+          <aside className="hidden md:flex w-1/2 shrink-0 flex-col relative overflow-hidden">
+            <AudioParticles isPlaying={isPlaying} audioRef={audioRef} />
 
-            <div className="relative flex flex-col items-center w-full px-12 z-10">
-              <div className="flex items-center gap-2.5 px-4 py-2 rounded-full border border-red-500/20 bg-red-500/[0.06] mb-14">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inset-0 rounded-full bg-red-500" style={{ animation: 'pulse-ring 1.5s ease-out infinite' }} />
-                  <span className="relative rounded-full h-2.5 w-2.5 bg-red-500" />
-                </span>
-                <span className="text-xs font-bold tracking-[0.25em] text-red-400 uppercase">On Air</span>
-              </div>
-
-              <button
-                onClick={() => setIsPlaying((p) => !p)}
-                className="w-20 h-20 rounded-full bg-white/[0.07] border border-white/[0.12] flex items-center justify-center hover:bg-white/[0.12] hover:border-white/[0.2] transition-all active:scale-95 mb-14"
-              >
-                {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
-              </button>
-
-              <div className="text-center w-full max-w-[340px]">
-                <div className="flex items-center justify-center gap-2.5 mb-4">
-                  <span className="px-2.5 py-1 rounded text-xs font-bold tracking-wider uppercase bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                    {currentStory.category[0]}
-                  </span>
-                  <span className={`flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase ${depth.color}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${depth.dot}`} />
-                    {depth.label}
-                  </span>
+            {/* Controls + title */}
+            <div className="relative z-10 mt-auto px-10 pb-[18%]">
+              {/* Slim play bar */}
+              <div className="flex items-center gap-3 mb-5">
+                <button
+                  onClick={() => setIsPlaying((p) => !p)}
+                  className="w-9 h-9 rounded-full bg-white/[0.08] border border-white/[0.12] flex items-center justify-center hover:bg-white/[0.14] transition-all active:scale-95 shrink-0"
+                >
+                  {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                </button>
+                <div className="flex-1 h-1 bg-white/[0.08] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-purple-500/50 rounded-full transition-all duration-100"
+                    style={{ width: `${progress}%` }}
+                  />
                 </div>
-                <h2 className="text-lg font-semibold leading-snug">
-                  {currentStory.title}
-                </h2>
+                <Volume2 className="w-4 h-4 text-zinc-600 shrink-0" />
               </div>
+
+              {/* Now playing info */}
+              <div className="flex items-center gap-2.5 mb-3">
+                <span className="px-2.5 py-1 rounded text-xs font-bold tracking-wider uppercase bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                  {currentStory.category[0]}
+                </span>
+                <span className={`flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase ${depth.color}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${depth.dot}`} />
+                  {depth.label}
+                </span>
+              </div>
+              <h2 className="text-2xl font-semibold leading-snug">
+                {currentStory.title}
+              </h2>
             </div>
           </aside>
 
