@@ -94,9 +94,17 @@ class TwitterReporter(BaseReporter):
 
         for data in fetched_data:
             self.fetched_ids.add(data.source_id)
-            
-            # process the tweets that are not processed previously
+
             if not data.is_processed:
+                # Check if already in raw_news_items (e.g. from a previous interrupted run)
+                existing = await self.database.load_raw_news(source_id=data.source_id)
+                if existing:
+                    # Update stats instead of creating a duplicate
+                    raw_tweet = data.get("raw_data")
+                    if raw_tweet:
+                        await self.update_impact_score(data.source_id, raw_tweet)
+                    await self.database.update_raw_data(data.get("id"), {"is_processed": True})
+                    continue
                 await self.preprocess_tweet(data.get("raw_data"), data.get("id"))
         
         logger.debug(f"Loaded {len(self.fetched_ids)} recently fetched ids.")

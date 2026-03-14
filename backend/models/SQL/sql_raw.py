@@ -13,7 +13,7 @@ class RawNewsDB(BaseDB):
     
     # Source information
     source_name: Mapped[str] = mapped_column(String(16), nullable=False)
-    source_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     source_url: Mapped[str] = mapped_column(String(2048))
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     

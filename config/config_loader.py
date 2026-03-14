@@ -26,4 +26,4 @@ class ConfigLoader:
         return self.configuration.get(key, default)
 
 # Create a global configuration instance
-configuration = ConfigLoader().configuration
+configuration = ConfigLoader().configuration 
