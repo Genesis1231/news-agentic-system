@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { Play, Pause, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import BurstLogo from '../components/BurstLogo';
+import AudioParticles from '../components/AudioParticles';
 import { MOCK_STORIES, CATEGORIES, DEPTH_CONFIG } from '../data/mockStories';
 
-const BAR_COUNT = 48;
 const CATEGORY_KEYS = new Set(CATEGORIES.map((c) => c.key));
 
 // Unified tag list: categories first, then unique entities
@@ -27,11 +27,6 @@ const LivePage = () => {
 
   const currentStory = MOCK_STORIES[currentIndex];
   const depth = DEPTH_CONFIG[currentStory.depth] || DEPTH_CONFIG.FLASH;
-
-  const barScales = useMemo(
-    () => Array.from({ length: BAR_COUNT }, () => 0.25 + Math.random() * 0.75),
-    []
-  );
 
   // Auto-advance through stories when playing
   useEffect(() => {
@@ -96,15 +91,10 @@ const LivePage = () => {
 
           {/* LEFT: RADIO */}
           <aside className="hidden md:flex w-1/2 shrink-0 flex-col items-center justify-center relative overflow-hidden">
-            <div
-              className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/4 w-[400px] h-[400px] rounded-full blur-[120px] pointer-events-none transition-opacity duration-[2000ms]"
-              style={{
-                background: 'radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)',
-                opacity: isPlaying ? 1 : 0.2,
-              }}
-            />
+            {/* Particle visualization */}
+            <AudioParticles isPlaying={isPlaying} />
 
-            <div className="relative flex flex-col items-center w-full px-12">
+            <div className="relative flex flex-col items-center w-full px-12 z-10">
               <div className="flex items-center gap-2.5 px-4 py-2 rounded-full border border-red-500/20 bg-red-500/[0.06] mb-14">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inset-0 rounded-full bg-red-500" style={{ animation: 'pulse-ring 1.5s ease-out infinite' }} />
@@ -113,33 +103,11 @@ const LivePage = () => {
                 <span className="text-xs font-bold tracking-[0.25em] text-red-400 uppercase">On Air</span>
               </div>
 
-              <div className="flex items-center justify-center gap-[3px] h-36 w-full max-w-[360px] mb-12">
-                {barScales.map((scale, i) => (
-                  <div
-                    key={i}
-                    className="w-[5px] rounded-full"
-                    style={{
-                      height: '100%',
-                      background: isPlaying
-                        ? 'linear-gradient(to top, rgba(124,58,237,0.5), rgba(167,139,250,0.9))'
-                        : 'rgba(124,58,237,0.25)',
-                      '--bar-scale': scale,
-                      transform: isPlaying ? undefined : `scaleY(${0.15 + scale * 0.25})`,
-                      animation: isPlaying
-                        ? `waveform-bar ${0.8 + Math.random() * 1.0}s ease-in-out ${i * 0.035}s infinite`
-                        : 'none',
-                      transition: 'transform 0.6s ease, background 0.6s ease',
-                      transformOrigin: 'center',
-                    }}
-                  />
-                ))}
-              </div>
-
               <button
                 onClick={() => setIsPlaying((p) => !p)}
-                className="w-16 h-16 rounded-full bg-white/[0.07] border border-white/[0.12] flex items-center justify-center hover:bg-white/[0.12] hover:border-white/[0.2] transition-all active:scale-95 mb-12"
+                className="w-20 h-20 rounded-full bg-white/[0.07] border border-white/[0.12] flex items-center justify-center hover:bg-white/[0.12] hover:border-white/[0.2] transition-all active:scale-95 mb-14"
               >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+                {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
               </button>
 
               <div className="text-center w-full max-w-[340px]">

@@ -21,16 +21,15 @@ class NewsResearcher:
 
     def __init__(
         self,
-        model_name: str = "claude-sonnet-4-20250514",
+        model_name: str = "claude-sonnet-4-6",
         temperature: float = 0.3,
     ) -> None:
         self.model = ChatAnthropic(
             model_name=model_name,
             temperature=temperature,
-            timeout=60,
+            timeout=300
         )
         self.system_prompt = load_prompt("research_agent")
-        # TODO: migrate to langchain.agents.create_agent when langgraph v2 ships
         self.agent = create_react_agent(
             model=self.model,
             tools=ALL_RESEARCH_TOOLS,
@@ -74,7 +73,7 @@ class NewsResearcher:
         user_message = self._build_user_message(news_item, topics)
 
         try:
-            logger.debug(f"Starting ReAct research agent with {len(topics)} topics...")
+            logger.debug(f"Starting research agent with {len(topics)} topics...")
             result = await self.agent.ainvoke(
                 {"messages": [HumanMessage(content=user_message)]},
                 config={"recursion_limit": self.RECURSION_LIMIT},

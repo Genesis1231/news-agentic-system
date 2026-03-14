@@ -31,6 +31,4 @@ RESEARCH_MEDIA = [
     "cmu.edu", "washington.edu", "ox.ac.uk", "cam.ac.uk", "stanford.edu", "berkeley.edu"
 ]
 
-EXCLUDE_DOMAINS = [
-    "arstechnica.com/civis/"
-]
+SOCIAL_MEDIA = ["reddit.com", "news.ycombinator.com", "x.com", "linkedin.com"]

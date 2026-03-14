@@ -21,7 +21,7 @@ class ResearchNode:
         if not research_topics:
             return Command(goto="node_write")
 
-        await tracker.log(raw_id, "Starting ReAct research agent...")
+        await tracker.log(raw_id, "Starting research...")
 
         research_notes = await self.researcher.research(
             news_item=news_data,

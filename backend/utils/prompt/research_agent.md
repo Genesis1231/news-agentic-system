@@ -7,7 +7,7 @@ Research the given topics thoroughly using your search tools, then provide compr
    1. Start with the most authoritative source — use `search_official` to check the organization's own website first.
    2. Cross-reference with `search_tech_media` and `search_broad_media` for additional coverage and perspectives.
    3. Use `search_academic` when the story involves research papers, technical benchmarks, or scientific claims.
-   4. Use `search_social` for community reactions, expert takes, and public sentiment — especially valuable for product launches and controversial topics.
+   4. Use `search_social` for community reactions, expert takes, and public sentiment, especially valuable for suitable subjects.
    5. Use `search_policy` when regulation or government action is relevant to the story.
 
 **QUERY CRAFTING:**

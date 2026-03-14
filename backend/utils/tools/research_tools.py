@@ -3,30 +3,37 @@ from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage
 from langchain_perplexity import ChatPerplexity
 
-from backend.utils.search.whitelist import (
-    POLICY_MEDIA, NEWS_MEDIA, TECH_MEDIA, RESEARCH_MEDIA
+from backend.utils.tools.whitelist import (
+    POLICY_MEDIA, NEWS_MEDIA, TECH_MEDIA, RESEARCH_MEDIA, SOCIAL_MEDIA
 )
 
-# Shared Perplexity client
-_perplexity = ChatPerplexity(model="sonar-pro", temperature=0.1, timeout=30)
-
-SOCIAL_MEDIA = ["reddit.com", "news.ycombinator.com", "x.com", "threads.net"]
-
+# Lazy-initialized Perplexity client (avoids import-time API key requirement)
+_perplexity = None
 
 PERPLEXITY_MAX_DOMAINS = 20
+
+
+def _get_perplexity():
+    """Get or create the shared Perplexity client."""
+    global _perplexity
+    if _perplexity is None:
+        _perplexity = ChatPerplexity(model="sonar-pro", temperature=0.1, timeout=30)
+    return _perplexity
 
 
 async def _search_perplexity(query: str, domains: list[str]) -> str:
     """Search Perplexity with domain filter and return synthesized text."""
     try:
-        response = await _perplexity.ainvoke(
+        client = _get_perplexity()
+        logger.debug(f"Performing Perplexity search for query: '{query}'")
+        response = await client.ainvoke(
             [HumanMessage(content=query)],
             extra_body={
                 "search_domain_filter": [d.lower() for d in domains[:PERPLEXITY_MAX_DOMAINS]],
                 "search_recency_filter": "month",
             },
         )
-        return response.content
+        return str(response.content)
     except Exception as e:
         logger.error(f"Perplexity search failed for '{query}': {e}")
         return f"Search failed: {e}"
