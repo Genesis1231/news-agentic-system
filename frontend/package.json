@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{js,jsx}\"",
-    "pages:deploy": "vite build"
+    "pages:deploy": "vite build && echo '/* /index.html 200' > dist/_redirects"
   },
   "devDependencies": {
     "@types/react": "^18.2.55",

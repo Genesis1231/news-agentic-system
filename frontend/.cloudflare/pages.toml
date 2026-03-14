@@ -7,3 +7,5 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  CF_PAGES_DEPLOY_WRANGLER = "false"
+  CF_PAGES_DEPLOYMENT_TYPE = "static"
