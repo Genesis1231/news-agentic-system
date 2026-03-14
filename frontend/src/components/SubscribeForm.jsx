@@ -111,7 +111,7 @@ const SubscribeForm = () => {
             />
             <button
               type="submit"
-              className="absolute right-2 top-2 bottom-2 px-6 bg-blue-500 text-white rounded-xl font-normal hover:bg-blue-600 transition-all duration-300 disabled:bg-blue-500/70 disabled:cursor-not-allowed flex items-center justify-center"
+              className="absolute right-2 top-2 bottom-2 px-6 bg-[#7C3AED] text-white rounded-xl font-normal hover:bg-[#6D28D9] transition-all duration-300 disabled:bg-[#7C3AED]/70 disabled:cursor-not-allowed flex items-center justify-center"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -120,7 +120,7 @@ const SubscribeForm = () => {
                   Processing...
                 </>
               ) : (
-                "Get Early Access"
+                "Receive Burst News"
               )}
             </button>
           </form>

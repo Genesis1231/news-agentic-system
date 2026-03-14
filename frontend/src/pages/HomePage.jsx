@@ -1,27 +1,9 @@
-import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Mic, Newspaper, Cpu } from 'lucide-react';
 import BurstLogo from '../components/BurstLogo';
+import SubscribeForm from '../components/SubscribeForm';
 
 const HomePage = () => {
-  const [email, setEmail] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!email) {
-      setError('Please enter your email address');
-      return;
-    }
-    if (!email.includes('@')) {
-      setError('Please enter a valid email address');
-      return;
-    }
-    setIsSubmitted(true);
-    setError('');
-    console.log('Subscription email:', email);
-  };
-
   return (
     <div className="min-h-screen bg-black text-white selection:bg-purple-500 selection:text-white">
       {/* Subtle gradient background */}
@@ -59,39 +41,14 @@ const HomePage = () => {
               </p>
             </div>
 
-            {/* Subscription Form */}
-            <div className="max-w-md mx-auto">
-              
-              {isSubmitted ? (
-                <div className="bg-purple-950/50 border border-purple-900/50 backdrop-blur-sm rounded-2xl p-4">
-                  <p className="text-purple-400 text-center py-2">
-                    You're on the list. Welcome to the future of tech news.
-                  </p>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="relative">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    className="w-full px-6 py-4 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 focus:outline-none focus:border-purple-500/50 transition-all duration-300 pr-36"
-                  />
-                  <button
-                    type="submit"
-                    className="absolute right-2 top-2 bottom-2 px-6 bg-[#7C3AED] text-white rounded-xl font-medium hover:bg-[#6D28D9] transition-all duration-300"
-                  >
-                    Get Early Access
-                  </button>
-                </form>
-                
-              )}
-              {error && (
-                <div className="mb-6 bg-red-950/50 border border-red-900/50 backdrop-blur-sm rounded-2xl p-4">
-                  <p className="text-red-400">{error}</p>
-                </div>
-              )}
-              
+            {/* Start Listening CTA */}
+            <div className="flex justify-center">
+              <Link
+                to="/live"
+                className="px-8 py-3.5 bg-blue-600 text-white rounded-xl font-medium text-lg hover:bg-blue-700 transition-all duration-200"
+              >
+                Start Listening
+              </Link>
             </div>
           </div>
         </div>
@@ -129,6 +86,14 @@ const HomePage = () => {
           </div>
         </div>
 
+        {/* Subscribe Section */}
+        <div className="container mx-auto py-16 border-t border-white/10">
+          <div className="max-w-md mx-auto text-center">
+            <p className="text-sm text-zinc-500 font-light mb-6">Get notified when new features drop</p>
+            <SubscribeForm />
+          </div>
+        </div>
+
         {/* Footer */}
         <footer className="container mx-auto px-4 py-8 text-center text-sm text-zinc-600 font-light">
           © 2026 Burst.fm. All rights reserved.
@@ -138,4 +103,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage; 
+export default HomePage;

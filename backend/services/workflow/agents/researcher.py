@@ -1,47 +1,46 @@
 from config import logger
-from typing import List, Dict, Any
-from langchain_core.prompts import ChatPromptTemplate
+from typing import List
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import HumanMessage
+from langgraph.prebuilt import create_react_agent
 
 from backend.models.data import RawNewsItem
 from backend.utils.prompt import load_prompt
-from backend.models.schema.outputs import ResearchEvaluation
-from backend.core.agent import BaseAgent
+from backend.utils.tools.research_tools import ALL_RESEARCH_TOOLS
 
 
-class NewsResearcher(BaseAgent):
+class NewsResearcher:
+    """ReAct research agent that uses domain-scoped search tools
+    to gather comprehensive research for news content creation.
+
+    Uses Claude Sonnet as the reasoning model and Perplexity-backed
+    tools for domain-targeted web searches.
     """
-    Perplexity-backed research agent that searches the web and synthesizes
-    information for news content creation.
-    """
+
+    RECURSION_LIMIT = 35  # ~17 tool calls max
 
     def __init__(
         self,
-        platform: str = "Perplexity",
-        model_name: str | None = "sonar-pro",
-        base_url: str | None = None,
-        temperature: float = 0.1
+        model_name: str = "claude-sonnet-4-20250514",
+        temperature: float = 0.3,
     ) -> None:
-        super().__init__(
-            config = {
-                "name": "Research Agent",
-                "platform": platform,
-                "model_name": model_name,
-                "base_url": base_url,
-                "temperature": temperature,
-                # No output_format — Perplexity returns free text with citations
-            }
+        self.model = ChatAnthropic(
+            model_name=model_name,
+            temperature=temperature,
+            timeout=60,
+        )
+        self.system_prompt = load_prompt("research_agent")
+        # TODO: migrate to langchain.agents.create_agent when langgraph v2 ships
+        self.agent = create_react_agent(
+            model=self.model,
+            tools=ALL_RESEARCH_TOOLS,
+            prompt=self.system_prompt,
         )
 
-    def _build_prompt(
-        self,
-        news_item: RawNewsItem,
-        topics: List[str],
-        accumulated_notes: str = ""
-    ) -> str:
-        """Build the user prompt for Perplexity research."""
-
+    def _build_user_message(self, news_item: RawNewsItem, topics: List[str]) -> str:
+        """Build the user message with news context and research topics."""
         topics_str = "\n    - ".join(topics)
-        prompt = f"""
+        return f"""
             Research the following topics thoroughly:
             <research_topics>
                 - {topics_str}
@@ -55,118 +54,35 @@ class NewsResearcher(BaseAgent):
                 ----------------------------------
                 {news_item.text}
             </source_content>
+
+            Use your search tools to gather comprehensive information, then provide well-organized research notes.
         """
-
-        if accumulated_notes:
-            prompt += f"""
-            Previous research findings (avoid repeating, focus on gaps):
-            <previous_findings>
-                {accumulated_notes}
-            </previous_findings>
-            """
-
-        prompt += "\n            Provide detailed, well-organized research notes."
-        return prompt
 
     async def research(
         self,
         news_item: RawNewsItem,
         topics: List[str],
-        accumulated_notes: str = ""
     ) -> str | None:
-        """Research topics via Perplexity and return synthesized findings."""
+        """Run the ReAct agent to research topics.
 
+        Returns research notes as a string, or None on failure.
+        """
         if not topics:
             logger.error("Empty topics provided")
             return None
 
-        system_prompt = load_prompt("research_content")
-        user_prompt = self._build_prompt(news_item, topics, accumulated_notes)
-
-        prompt = ChatPromptTemplate([
-            ("system", system_prompt),
-            ("user", user_prompt),
-        ])
+        user_message = self._build_user_message(news_item, topics)
 
         try:
-            logger.debug(f"Researching {len(topics)} topics via Perplexity...")
-            response = await self._invoke(prompt.format_messages())
-            return response.content
+            logger.debug(f"Starting ReAct research agent with {len(topics)} topics...")
+            result = await self.agent.ainvoke(
+                {"messages": [HumanMessage(content=user_message)]},
+                config={"recursion_limit": self.RECURSION_LIMIT},
+            )
+            # The last message is the agent's final synthesized answer
+            final_message = result["messages"][-1]
+            return final_message.content
 
         except Exception as e:
-            logger.error(f"Failed to research topics: {e}")
+            logger.error(f"Research agent failed: {e}")
             return None
-
-
-class ResearchEvaluator(BaseAgent):
-    """
-    Evaluates whether accumulated research is sufficient for writing,
-    and identifies remaining knowledge gaps.
-    """
-
-    def __init__(
-        self,
-        platform: str = "Google",
-        model_name: str | None = "gemini-2.5-flash",
-        base_url: str | None = None,
-        temperature: float = 0.1
-    ) -> None:
-        super().__init__(
-            config = {
-                "name": "Research Evaluator",
-                "platform": platform,
-                "model_name": model_name,
-                "base_url": base_url,
-                "temperature": temperature,
-                "output_format": ResearchEvaluation,
-            }
-        )
-
-    async def evaluate(
-        self,
-        news_item: RawNewsItem,
-        original_topics: List[str],
-        accumulated_notes: str
-    ) -> Dict[str, Any]:
-        """Evaluate research completeness and identify gaps."""
-
-        system_prompt = load_prompt("evaluate_research")
-        topics_str = "\n    - ".join(original_topics)
-
-        user_prompt = f"""
-            Original research topics:
-            <research_topics>
-                - {topics_str}
-            </research_topics>
-
-            News context:
-            <source_content>
-                {news_item.composed_content}
-            </source_content>
-
-            Accumulated research notes:
-            <research_notes>
-                {accumulated_notes}
-            </research_notes>
-
-            Evaluate the research completeness and identify any critical gaps.
-            Output strictly in provided JSON schema.
-        """
-
-        prompt = ChatPromptTemplate([
-            ("system", system_prompt),
-            ("user", user_prompt),
-        ])
-
-        try:
-            logger.debug("Evaluating research completeness...")
-            response: ResearchEvaluation = await self._invoke(prompt.format_messages())
-            return response.model_dump()
-
-        except Exception as e:
-            logger.error(f"Failed to evaluate research: {e}")
-            return {
-                "sufficient": False,
-                "gaps": original_topics,
-                "analysis": "Evaluation failed"
-            }

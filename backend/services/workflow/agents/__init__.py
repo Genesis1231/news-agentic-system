@@ -1,6 +1,6 @@
 from .classifier import ClassificationAgent
 from .news_editor import NewsEditor
-from .researcher import NewsResearcher, ResearchEvaluator
+from .researcher import NewsResearcher
 from .assistant import ResearchAssistant
 from .writer import NewsWriter
 from .meta_writer import MetaWriter
@@ -10,7 +10,6 @@ __all__ = [
     "ClassificationAgent",
     "NewsEditor",
     "NewsResearcher",
-    "ResearchEvaluator",
     "ResearchAssistant",
     "NewsWriter",
     "MetaWriter",
