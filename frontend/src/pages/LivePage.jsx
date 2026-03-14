@@ -90,7 +90,7 @@ const LivePage = () => {
   return (
     <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
       {/* Hidden audio element */}
-      <audio ref={audioRef} src={MOCK_STORIES[0].audio_url} crossOrigin="anonymous" preload="auto" />
+      <audio ref={audioRef} src={MOCK_STORIES[0].audio_url} preload="auto" />
 
       <nav className="shrink-0 border-b border-white/[0.06] bg-black/60 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between">

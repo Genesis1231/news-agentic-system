@@ -77,8 +77,9 @@ const AudioParticles = ({ isPlaying, audioRef }) => {
   const rafRef = useRef(null);
   const analyserRef = useRef(null);
   const audioCtxRef = useRef(null);
+  const useAnalyserRef = useRef(false);
 
-  // Connect analyser lazily on first play (avoids suspended AudioContext issues)
+  // Try to connect analyser — works for same-origin audio, fails silently for cross-origin
   const ensureAnalyser = useCallback(() => {
     if (analyserRef.current) return;
     const audio = audioRef?.current;
@@ -96,12 +97,13 @@ const AudioParticles = ({ isPlaying, audioRef }) => {
 
       audioCtxRef.current = ctx;
       analyserRef.current = analyser;
+      useAnalyserRef.current = true;
     } catch (e) {
-      console.warn('AudioParticles: failed to connect analyser', e);
+      // Cross-origin or other issue — fall back to simulated intensity
+      useAnalyserRef.current = false;
     }
   }, [audioRef]);
 
-  // Connect on first play and resume context
   useEffect(() => {
     if (isPlaying) {
       ensureAnalyser();
@@ -147,12 +149,26 @@ const AudioParticles = ({ isPlaying, audioRef }) => {
       }
 
       let intensity = 0;
-      if (isPlaying && analyserRef.current) {
+
+      if (isPlaying && useAnalyserRef.current && analyserRef.current) {
+        // Real audio data available (same-origin)
         analyserRef.current.getByteFrequencyData(dataArray);
         let sum = 0;
         for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
         intensity = sum / (dataArray.length * 255);
-      } else if (!isPlaying) {
+        // If analyser returns all zeros (CORS tainted), switch to simulation
+        if (intensity === 0) {
+          useAnalyserRef.current = false;
+        }
+      }
+
+      if (isPlaying && !useAnalyserRef.current) {
+        // Simulated intensity — organic pulsing
+        const t = Date.now() / 1000;
+        intensity = 0.3 + Math.sin(t * 1.8) * 0.12 + Math.sin(t * 4.3) * 0.08;
+      }
+
+      if (!isPlaying) {
         intensity = 0.02;
       }
 
