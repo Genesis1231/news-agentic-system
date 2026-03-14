@@ -60,8 +60,8 @@ class ResearchAssistant(BaseAgent):
             return None
     
         # load the system prompt and user prompt
-        research_outlines = "\n    - ".join(research_outlines)
-        system_prompt = load_prompt("curate_research").format(research_outlines=research_outlines)
+        formatted_outlines = "\n    - ".join(research_outlines)
+        system_prompt = load_prompt("curate_research").format(research_outlines=formatted_outlines)
         user_prompt = self.build_user_prompt(web_content)
         
         prompt = ChatPromptTemplate([
@@ -79,16 +79,16 @@ class ResearchAssistant(BaseAgent):
             logger.error(f"Failed to summarize research content: {e}")
             return None
         
-    async def interpret(self, content: str) -> str | None:
+    async def interpret(self, content: str | List[str]) -> str | None:
         """Read the content and provide a short summary"""
         
         if not content:
             logger.error("Empty content provided. ")
             return None
-            
+        
         # load the system prompt and user prompt
         system_prompt = load_prompt("interpret_content")
-        user_prompt = self.build_user_prompt(content)
+        user_prompt = self.build_user_prompt(content) if isinstance(content, list) else load_prompt("interpret_content").format(content=content)
         
         prompt = ChatPromptTemplate([
             ("system", system_prompt),

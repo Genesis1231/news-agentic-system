@@ -63,7 +63,6 @@ class TwitterReporter(BaseReporter):
         """Initialize the Twitter Aggregator."""
         
         try:
-            await self.load_twitter_accounts()
             await self.load_fetched_ids()
         except Exception as e:
             raise Exception(f"Failed to initialize Twitter Aggregator: {e}")
@@ -79,7 +78,7 @@ class TwitterReporter(BaseReporter):
 
     async def load_fetched_ids(self) -> None:
         """Get the set of indexed ids of the fetched news items."""
-        
+
         # Fetch the ids from the last N days (limit=0 to load ALL, not just default 100)
         time_range = (datetime.now(timezone.utc) - timedelta(days=self.NUM_DAYS), None)
         fetched_data = await self.database.load_raw_data(
@@ -87,66 +86,106 @@ class TwitterReporter(BaseReporter):
             limit=0,
             source_name="twitter"
         )
-        
+
         if not fetched_data:
             logger.info("No recent twitter posts found.")
             return
 
-        for data in fetched_data:
-            self.fetched_ids.add(data.source_id)
+        # Collect unprocessed source_ids and bulk-check which already exist in raw_news_items
+        unprocessed = [data for data in fetched_data if not data.get("is_processed")]
+        unprocessed_source_ids = [data.get("source_id") for data in unprocessed]
 
-            if not data.is_processed:
-                # Check if already in raw_news_items (e.g. from a previous interrupted run)
-                existing = await self.database.load_raw_news(source_id=data.source_id)
-                if existing:
-                    # Update stats instead of creating a duplicate
+        existing_news = set()
+        if unprocessed_source_ids:
+            existing_items = await self.database.load_raw_news(source_id=unprocessed_source_ids)
+            existing_news = {item.source_id for item in existing_items}
+
+        # Build fetched_ids set and handle unprocessed records
+        score_updates = []
+        preprocess_tasks = []
+        for data in fetched_data:
+            self.fetched_ids.add(data.get("source_id"))
+
+            if not data.get("is_processed"):
+                source_id = data.get("source_id")
+                if source_id in existing_news:
                     raw_tweet = data.get("raw_data")
                     if raw_tweet:
-                        await self.update_impact_score(data.source_id, raw_tweet)
+                        timestamp = self._parse_tweet_timestamp(raw_tweet)
+                        score = self._compute_impact_score(timestamp, raw_tweet)
+                        score_updates.append((source_id, score))
                     await self.database.update_raw_data(data.get("id"), {"is_processed": True})
                     continue
-                await self.preprocess_tweet(data.get("raw_data"), data.get("id"))
-        
+                preprocess_tasks.append(self.preprocess_tweet(data.get("raw_data"), data.get("id")))
+
+        # Batch: update impact scores concurrently
+        if score_updates:
+            await asyncio.gather(*[
+                self._update_score_by_source_id(sid, score)
+                for sid, score in score_updates
+            ])
+
+        # Process unprocessed tweets concurrently
+        if preprocess_tasks:
+            await asyncio.gather(*preprocess_tasks)
+
         logger.debug(f"Loaded {len(self.fetched_ids)} recently fetched ids.")
     
     async def fetch(self) -> None:
         """Fetch news data directly from Apify twitter scraper actor."""
+
+        # Reload accounts each cycle to pick up DB changes without restart
+        await self.load_twitter_accounts()
 
         if not self.twitter_accounts:
             logger.error("No twitter accounts to fetch from.")
             return
 
         try:
-            # Fetch tweets 
+            # Fetch tweets
             run_results = await self.fetch_tweets()
 
-            # Pre-process fetched news and filter new tweets
+            # Fetch all datasets concurrently
+            valid_runs = [run for run in run_results if run and "defaultDatasetId" in run]
+            datasets = await asyncio.gather(*[
+                self.client.dataset(run["defaultDatasetId"]).list_items(limit=10)
+                for run in valid_runs
+            ])
+
+            # Process all dataset items: separate new tweets from score updates
             fetched_tasks = []
-            for run in run_results:
-                if run and "defaultDatasetId" in run:
-                    dataset = await self.client.dataset(run["defaultDatasetId"]).list_items(limit=10)
-                    
-                    # Filter out invalid tweets and replies, update score for known tweets
-                    for data in dataset.items:
-                        tweet_id = data.get("id")
-                        if int(tweet_id) < 0 or data.get("isReply"):
-                            continue
+            score_updates = []
+            for dataset in datasets:
+                for data in dataset.items:
+                    tweet_id = data.get("id")
+                    if int(tweet_id) < 0 or data.get("isReply"):
+                        continue
 
-                        source_id = f'twitter_{tweet_id}'
-                        if source_id in self.fetched_ids:
-                            # Update impact score with fresh metrics
-                            await self.update_impact_score(source_id, data)
-                            continue
+                    source_id = f'twitter_{tweet_id}'
+                    if source_id in self.fetched_ids:
+                        # Batch score update instead of awaiting one-by-one
+                        timestamp = self._parse_tweet_timestamp(data)
+                        score = self._compute_impact_score(timestamp, data)
+                        score_updates.append((source_id, score))
+                        continue
 
-                        raw_data_id = await self.save_tweet(data)
-                        fetched_tasks.append(self.preprocess_tweet(data, raw_data_id))
+                    raw_data_id = await self.save_tweet(data)
+                    fetched_tasks.append(self.preprocess_tweet(data, raw_data_id))
 
-            logger.debug(f"Fetched {len(fetched_tasks)} twitter dataset items.")
+            logger.debug(f"Fetched {len(fetched_tasks)} new tweets, {len(score_updates)} score updates.")
 
-            # Process fetched tweets
+            # Run score updates and new tweet processing concurrently
+            tasks = []
+            if score_updates:
+                tasks.append(asyncio.gather(*[
+                    self._update_score_by_source_id(sid, score)
+                    for sid, score in score_updates
+                ]))
             if fetched_tasks:
-                await asyncio.gather(*fetched_tasks)
-                                    
+                tasks.append(asyncio.gather(*fetched_tasks))
+            if tasks:
+                await asyncio.gather(*tasks)
+
         except Exception as e:
             logger.error(f"Twitter Aggregator: Error fetching news from Twitter: {e}")
     
@@ -208,13 +247,39 @@ class TwitterReporter(BaseReporter):
         except Exception as e:
             logger.error(f"Error preprocessing tweet ID:{tweet.get('id')}: {e}")
 
+    @staticmethod
+    def _parse_tweet_timestamp(tweet: Dict[str, Any]) -> datetime:
+        """Parse the tweet timestamp from Apify format."""
+        return datetime.strptime(tweet['createdAt'], "%a %b %d %H:%M:%S %z %Y")
+
+    @staticmethod
+    def _compute_impact_score(timestamp: datetime, tweet: Dict[str, Any]) -> float:
+        """Compute impact score from tweet engagement metrics."""
+        return potential_impact_score(
+            timestamp=timestamp,
+            metrics_likes=tweet.get('likeCount', 0),
+            metrics_comments=tweet.get('replyCount', 0),
+            metrics_bookmarks=tweet.get('bookmarkCount', 0),
+            metrics_reposts=tweet.get('retweetCount', 0) + tweet.get('quoteCount', 0),
+            metrics_views=tweet.get('viewCount', 0)
+        )
+
+    async def _update_score_by_source_id(self, source_id: str, score: float) -> None:
+        """Update impact score for a tweet by source_id."""
+        try:
+            existing = await self.database.load_raw_news(source_id=source_id)
+            if existing:
+                await self.database.update_raw_news(existing[0].id, {"impact_score": score})
+        except Exception as e:
+            logger.error(f"Error updating impact score for {source_id}: {e}")
+
     async def save_tweet(self, tweet: Dict[str, Any]) -> int | List[int] | None:
         """Save the raw data into database."""
+        source_id = f"twitter_{tweet.get('id')}"
         try:
-            timestamp = datetime.strptime(tweet['createdAt'], "%a %b %d %H:%M:%S %z %Y")
-            source_id = f"twitter_{tweet.get('id')}"
+            timestamp = self._parse_tweet_timestamp(tweet)
             author = tweet['author']
-    
+
             return await self.database.save_raw_data({
                     "source_name": "twitter",
                     "source_id": source_id,
@@ -232,10 +297,10 @@ class TwitterReporter(BaseReporter):
 
         if not tweet:
             raise ValueError(f"Invalid tweet data: {type(tweet)}")
-        
+
         # Parse timestamp and tweet id
         tweet_id = f"twitter_{tweet['id']}"
-        timestamp = datetime.strptime(tweet['createdAt'], "%a %b %d %H:%M:%S %z %Y")
+        timestamp = self._parse_tweet_timestamp(tweet)
 
         # author data
         if not (author_data := tweet['author']):
@@ -254,17 +319,14 @@ class TwitterReporter(BaseReporter):
             # get the source data
             source_data = quote_data if quote_data else retweet_data
             
-            source_timestamp = datetime.strptime(source_data['createdAt'], "%a %b %d %H:%M:%S %z %Y")
+            source_timestamp = self._parse_tweet_timestamp(source_data)
             original_author = f"{source_data['author']['name']} ({source_data['author']['userName']})"
             original_text = source_data["text"]
             original_media = source_data.get('extendedEntities', {}).get('media', [])
             
-            # calculate the timespan
-            timespan = (timestamp - source_timestamp).days
-            timespan_str = f"({timespan} days ago)" if timespan > 0 else "earlier"
 
             # format the tweet
-            prefix = f"Retweeted from {original_author}'s tweet {timespan_str}:"
+            prefix = f"Retweeted from {original_author}'s tweet:"
             if quote_data:
                 prefix = f"<main_content>{tweet_text}</main_content> \n {prefix}"
             
@@ -281,14 +343,7 @@ class TwitterReporter(BaseReporter):
         media_content = await self.download_media(media=tweet_media, post_id=tweet_id)
 
         # Compute impact score from raw metrics
-        score = potential_impact_score(
-            timestamp=timestamp,
-            metrics_likes=tweet.get('likeCount', 0),
-            metrics_comments=tweet.get('replyCount', 0),
-            metrics_bookmarks=tweet.get('bookmarkCount', 0),
-            metrics_reposts=tweet.get('retweetCount', 0) + tweet.get('quoteCount', 0),
-            metrics_views=tweet.get('viewCount', 0)
-        )
+        score = self._compute_impact_score(timestamp, tweet)
 
         # Return RawNewsItem pydantic object
         return RawNewsItem(
@@ -308,22 +363,9 @@ class TwitterReporter(BaseReporter):
 
     async def update_impact_score(self, source_id: str, tweet: Dict[str, Any]) -> None:
         """Recompute and update impact score for an already-fetched tweet."""
-        try:
-            timestamp = datetime.strptime(tweet['createdAt'], "%a %b %d %H:%M:%S %z %Y")
-            score = potential_impact_score(
-                timestamp=timestamp,
-                metrics_likes=tweet.get('likeCount', 0),
-                metrics_comments=tweet.get('replyCount', 0),
-                metrics_bookmarks=tweet.get('bookmarkCount', 0),
-                metrics_reposts=tweet.get('retweetCount', 0) + tweet.get('quoteCount', 0),
-                metrics_views=tweet.get('viewCount', 0)
-            )
-
-            existing = await self.database.load_raw_news(source_id=source_id)
-            if existing:
-                await self.database.update_raw_news(existing[0].id, {"impact_score": score})
-        except Exception as e:
-            logger.error(f"Error updating impact score for {source_id}: {e}")
+        timestamp = self._parse_tweet_timestamp(tweet)
+        score = self._compute_impact_score(timestamp, tweet)
+        await self._update_score_by_source_id(source_id, score)
 
     async def download_media(self, media: list[dict[str, Any]], post_id: str) -> Dict[str, Any]:
         """Download media files from URLs."""
