@@ -5,13 +5,14 @@ import { format } from 'date-fns';
 import BurstLogo from '../components/BurstLogo';
 import AudioParticles from '../components/AudioParticles';
 import Subtitles from '../components/Subtitles';
-import { MOCK_STORIES, CATEGORIES } from '../data/mockStories';
+import { CATEGORIES } from '../data/mockStories';
 
 const R2_BASE = 'https://pub-c163d15064354af0a8ac3b349f32512d.r2.dev';
 const CATEGORY_KEYS = new Set(CATEGORIES.map((c) => c.key));
 
 const LivePage = () => {
-  const [stories, setStories] = useState(MOCK_STORIES);
+  const [stories, setStories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -23,7 +24,7 @@ const LivePage = () => {
   const [showAll, setShowAll] = useState(false);
   const audioRef = useRef(null);
 
-  // Fetch stories from R2, fall back to mock data
+  // Fetch stories from R2
   useEffect(() => {
     fetch(`${R2_BASE}/stories.json`)
       .then((res) => {
@@ -36,18 +37,9 @@ const LivePage = () => {
           setExpandedId(data.stories[0].id);
         }
       })
-      .catch(() => {
-        // Fall back to mock stories
-        setExpandedId(MOCK_STORIES[0].id);
-      });
+      .catch((err) => console.error('Failed to load stories:', err))
+      .finally(() => setLoading(false));
   }, []);
-
-  // Set initial expanded on first load
-  useEffect(() => {
-    if (stories.length > 0 && expandedId === null) {
-      setExpandedId(stories[0].id);
-    }
-  }, [stories]);
 
   const allTags = useMemo(() => [
     ...CATEGORIES.map((c) => ({ label: c.label, value: c.key })),
@@ -137,7 +129,21 @@ const LivePage = () => {
 
   const isLive = isPlaying && !audioError;
 
-  if (!currentStory) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-zinc-500 text-sm">Loading stories...</div>
+      </div>
+    );
+  }
+
+  if (!currentStory) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-zinc-500 text-sm">No stories available</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
