@@ -52,17 +52,17 @@ class NewsEditor(BaseAgent):
             Now, proceed and output the evaluation strictly in provided JSON schema:
         """
     
-    def build_review_prompt(self, draft_script: str) -> str:
-        """Build the user prompt for the review agent"""
+    def build_summarize_prompt(self, draft_script: str) -> str:
+        """Build the user prompt for the summarize agent"""
         
-        review_prompt = f"""
-            Now, proceed to review the draft script:
+        summarize_prompt = f"""
+            Now, proceed to summarize the draft script:
             <script>
                 {draft_script}
             </script>
             
         """
-        return review_prompt
+        return summarize_prompt
     
     
     async def evaluate(self, news_item: RawNewsItem) -> Dict[str, Any] | None:
@@ -92,33 +92,26 @@ class NewsEditor(BaseAgent):
             return None
         
     
-    async def review(
-        self, 
-        news_item: RawNewsItem, 
-        draft: str,
-        depth: str
-    ) -> Dict[str, Any] | None:
-        """Main response function that build the prompt and get response from LLM"""
-        
-        if not draft:
-            logger.warning("No draft to review. ")
+    async def summarize(self, script: str) -> str | None:
+        """Generate a concise 2-3 sentence summary from the approved script for the news feed."""
+
+        if not script:
+            logger.warning("No script to summarize.")
             return None
-        
-        # load the system prompt and user prompt
-        system_prompt = load_prompt("review_script").format(content=news_item.composed_content)
-        user_prompt = self.build_review_prompt(draft)
-        
+
+        system_prompt = load_prompt("summarize_script").format(script=script)
+        user_prompt = self.build_summarize_prompt(script)
+
         prompt = ChatPromptTemplate([
             ("system", system_prompt),
             ("user", user_prompt),
         ])
-        
+
         try:
-            logger.debug(f"Reviewing news script...")
+            logger.debug("Summarizing script for news feed...")
             response = await self._invoke(prompt.format_messages())
-            
-            return re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL)
-            
+            return re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL).strip()
+
         except Exception as e:
-            logger.error(f"{self._platform} failed to evaluate news content: {e}")
+            logger.error(f"{self._platform} failed to summarize script: {e}")
             return None

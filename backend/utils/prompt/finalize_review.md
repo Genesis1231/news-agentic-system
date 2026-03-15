@@ -55,6 +55,6 @@ The draft script is based on this original content:
       * Judge the ability to drive comments, shares, and algorithmic engagement.
       
    - 'revision_notes'
-      * Provide 1-2 revision suggestions, focusing on the **areas that score is below 8**:
+      * Provide 1-2 revision suggestions, focusing on the weak:
          - Enhance specific vocabulary with bold, impactful spoken language.
          - Only provide revision for words or phrases, NEVER the full sentence.

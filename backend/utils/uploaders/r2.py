@@ -94,7 +94,7 @@ class R2Uploader:
                 stories.append({
                     "id": item.id,
                     "title": item.title,
-                    "text": item.text[:200] if item.text else "",
+                    "text": item.text or "",
                     "category": item.news_category or [],
                     "entities": item.entities or [],
                     "depth": item.depth,

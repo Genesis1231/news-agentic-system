@@ -1,6 +1,6 @@
 from config import logger
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, get_args
 
 ENUM_NEWS_CATEGORY = Literal[
     "AI", "ROBOTICS", "QUANTUM", "SPACE", "BIOTECH", "BLOCKCHAIN", 
@@ -66,9 +66,9 @@ class Classification(BaseModel):
     
     @field_validator('news_category', 'news_type', 'entities', mode='before')
     def ensure_list(cls, v):
-        if isinstance(v, str):
-            logger.warning(f"Invalid single value {v}, converted to list")
-            return [v]
+        v = [v] if isinstance(v, str) else v
+        valid_cats = set(get_args(ENUM_NEWS_CATEGORY))
+        return [c.upper() if c.upper() in valid_cats else "OTHER" for c in v]
         
         return v
     
@@ -86,12 +86,10 @@ class Classification(BaseModel):
         
     @field_validator('sentiment', mode='before')
     def validate_priority(cls, v):
-        if isinstance(v, str):
-            return v.upper()
-        return "NEUTRAL"
+        v = v.upper() if isinstance(v, str) else "NEUTRAL"
+        return "NEUTRAL" if v not in get_args(ENUM_SENTIMENT) else v
 
     @field_validator('source_level', mode='before')
     def validate_source_level(cls, v):
-        if isinstance(v, str):
-            return v.upper()
-        return "TERTIARY"
+        v = v.upper() if isinstance(v, str) else "TERTIARY"
+        return "TERTIARY" if v not in get_args(ENUM_SOURCE_LEVEL) else v

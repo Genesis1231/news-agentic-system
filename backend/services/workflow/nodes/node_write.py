@@ -72,5 +72,8 @@ class WritingNode:
         # log the draft script
         await tracker.log(str(raw_id), f"Draft script: \n {json.dumps(script, indent=4)}")
                     
-        return { "status": NewsStatus.COMPOSED, "draft": draft_script }
+        return Command(
+            update={ "status": NewsStatus.COMPOSED, "draft": draft_script },
+            goto="node_review"
+        )
  

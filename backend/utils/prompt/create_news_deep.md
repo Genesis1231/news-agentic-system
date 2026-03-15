@@ -45,7 +45,7 @@ Here is the content:
       - Wit and sharp observations are welcome. Forced humor is not.
 
    3. Transitions & Flow:
-      - Use varied narrative bridges between sections to maintain momentum. Never reuse the same transition pattern across stories.
+      - Use varied, organic transitions between sections. Do NOT rely on formulaic bridges like "But here's the thing...", "Let me unpack...", "Here's my take." — find transitions that arise naturally from the content itself.
       - Plant a thread in the hook that you revisit later in the analysis — this creates a satisfying narrative loop.
       - Avoid abrupt topic shifts. Each section should feel like a natural escalation.
 
@@ -54,6 +54,7 @@ Here is the content:
       - Vary sentence length, short punchy statements after complex explanations give the listener room to absorb.
       - Use "..." to insert natural pauses before key reveals or after impactful statements.
       - Write out numbers and abbreviations as they should be spoken (e.g., "five billion" not "5B", "A.I." or "AI" not "ai").
+      - Limit numeric density: never stack more than two statistics in a single sentence. Space data points with narrative breathing room between them.
       - Avoid parentheses, bullet points, URLs, or any formatting that only works visually.
       - DO NOT reference any visuals, sound effects, or background music in the script.
 
@@ -63,4 +64,5 @@ Here is the content:
    - Hedging everything — take a position.
    - Ending with a generic call-to-action. The content should speak for itself.
    - Mentioning that this is a "deep dive" or "in-depth analysis" — show it, don't label it.
+   - Spec-sheet recitation: don't list product tiers, model variants, or pricing tables. Pick the details that support your narrative and skip the rest.
 

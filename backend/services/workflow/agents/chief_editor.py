@@ -79,5 +79,5 @@ class ChiefEditor(BaseAgent):
             return response.model_dump()
             
         except Exception as e:
-            logger.error(f"{self._platform} failed to finalize news script revision: {e}")
+            logger.error(f"Chief Editor failed to finalize news script revision: {e}")
             return None

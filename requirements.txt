@@ -1,0 +1,75 @@
+# LLM & Workflow
+langchain
+langchain-core
+langchain-anthropic
+langchain-groq
+langchain-openai
+langchain-google-genai
+langchain-ollama
+langchain-mistralai
+langchain-perplexity
+langchain-xai
+langchain-community
+langchain-postgres
+langgraph
+
+# Database
+sqlalchemy
+asyncpg
+psycopg2-binary
+pgvector
+redis
+
+# TTS & Media
+elevenlabs
+edge-tts
+moviepy
+librosa
+pydub
+pillow
+opencv-python
+imageio-ffmpeg
+face-recognition
+
+# Web & HTTP
+aiohttp
+aiofiles
+httpx
+requests
+fastapi
+streamlit
+
+# Search & Scraping
+tavily-python
+apify
+crawlee
+feedparser
+trafilatura
+duckduckgo-search
+
+# Cloud & Storage
+boto3
+
+# Data & Validation
+pydantic
+pydantic-settings
+pandas
+numpy
+scipy
+scikit-learn
+
+# NLP
+spacy
+
+# Utils
+python-dotenv
+pyyaml
+tenacity
+psutil
+tiktoken
+tqdm
+apscheduler
+
+# Dev & Test
+pytest
+pytest-asyncio

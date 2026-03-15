@@ -195,9 +195,10 @@ class ModelFactory:
         
         try:
             return ChatAnthropic(
-                model_name=model_name, 
+                model_name=model_name,
                 temperature=temperature,
-                timeout=30   
+                max_tokens=4096,
+                timeout=60
             )
             
         except Exception as e:
