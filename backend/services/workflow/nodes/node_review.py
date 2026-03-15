@@ -60,11 +60,14 @@ class ReviewNode:
             if count >= 2:
                 # TODO: send to human editor
                 await tracker.log(str(raw_id), f"Revised {count} times for {depth} script. Send to human editor.")
+                # return Command(
+                #     update={ "status": NewsStatus.FAILED },
+                #     goto=END
+                # )
                 return Command(
-                    update={ "status": NewsStatus.FAILED },
-                    goto=END
+                    update={ "status": NewsStatus.REVIEWED, "raw_news": raw_data},
+                    goto="node_finalize"
                 )
-            
             # Update the revision notes and count
             revisions = {
                 "notes": final_review.get("revision_notes"),
@@ -105,16 +108,16 @@ class ReviewNode:
 
         if script_depth.upper() == "FLASH":
             return (
-                source_integrity >= 8 and
+                source_integrity >= 7 and
                 storytelling >= 7 and
                 hook_effectiveness >= 8
             )
 
         if script_depth.upper() == "DEEP":
             return (
-                source_integrity >= 8 and
-                storytelling >= 8 and
-                value_density >= 8 and
+                source_integrity >= 7 and
+                storytelling >= 7 and
+                value_density >= 7 and
                 hook_effectiveness >= 7 and
                 engagement_potential >= 7
             )

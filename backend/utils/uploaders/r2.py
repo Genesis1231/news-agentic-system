@@ -53,7 +53,7 @@ class R2Uploader:
                 ExtraArgs={"ContentType": "audio/mpeg"},
             )
             public_url = f"{self._public_url}/{r2_key}"
-            logger.info(f"Uploaded audio to R2: {public_url}")
+            logger.debug(f"Uploaded audio to R2: {public_url}")
 
             # Upload companion subtitle JSON if it exists
             subtitle_path = path.with_suffix(".json")
@@ -66,7 +66,7 @@ class R2Uploader:
                     sub_key,
                     ExtraArgs={"ContentType": "application/json"},
                 )
-                logger.info(f"Uploaded subtitle to R2: {self._public_url}/{sub_key}")
+                logger.debug(f"Uploaded subtitle to R2: {self._public_url}/{sub_key}")
 
             return public_url
 
@@ -123,7 +123,7 @@ class R2Uploader:
                 Body=body.encode("utf-8"),
                 ContentType="application/json",
             )
-            logger.info(f"Updated stories.json with {len(stories)} items.")
+            logger.debug(f"Updated stories.json with {len(stories)} items.")
 
             # Clean up orphaned audio files no longer in the index
             if self._cleanup_enabled:
@@ -176,7 +176,7 @@ class R2Uploader:
                     Delete={"Objects": batch, "Quiet": True},
                 )
 
-            logger.info(f"R2 cleanup: deleted {len(orphaned)} orphaned files.")
+            logger.debug(f"R2 cleanup: deleted {len(orphaned)} orphaned files.")
 
         except Exception as e:
             logger.error(f"R2 cleanup failed: {e}")

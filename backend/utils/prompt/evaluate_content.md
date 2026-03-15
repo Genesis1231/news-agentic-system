@@ -41,8 +41,8 @@ Evaluate the provided story through the framework to determine if it has excepti
 
    - 'deep_dive':
       Decide whether this story warrants in-depth research and analysis.
-         * true: The story is complex, high-impact, or novel to the target audience.
-         * false: A quick flash report is sufficient to cover the story.
+         * true: only when the story is complex, high-impact, and novel to the target audience.
+         * false: short report is sufficient to cover the story.
 
    - 'additional_research': (return [] if 'final_decision' is NO.)
       List top 3 additional research needed to enrich the story. Typical areas:

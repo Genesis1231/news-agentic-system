@@ -13,7 +13,7 @@ from backend.utils.tools.whitelist import (
 _perplexity = None
 
 PERPLEXITY_MAX_DOMAINS = 20
-PERPLEXITY_MAX_RETRIES = 3
+PERPLEXITY_MAX_RETRIES = 10
 PERPLEXITY_RETRY_BASE_DELAY = 2
 
 
