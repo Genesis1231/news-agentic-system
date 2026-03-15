@@ -45,7 +45,7 @@ class FinalizeNode:
 
         processed_data = NewsItem(
             raw_id=raw_id,
-            title=raw_news.title,
+            title=raw_news.headline or raw_news.title,
             script=script,
             text=summary,
             depth=depth,
