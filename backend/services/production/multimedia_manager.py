@@ -1,11 +1,10 @@
 import os
-from config import logger
+from config import logger, configuration
 import psutil
 import asyncio
 import json
 from typing import Dict, Any
 from concurrent.futures import ProcessPoolExecutor
-
 from backend.core.redis import tracker
 from backend.models.data import NewsItem
 from backend.utils.music import get_music
@@ -30,7 +29,11 @@ class MultimediaManager:
         timeout: int = 600 # 10 minutes
     ) -> None:  
         self.executor: ProcessPoolExecutor = ProcessPoolExecutor(max_workers=max_workers)
-        self.speech_generator: TTSGenerator = TTSGenerator()
+        voices = configuration["TTS"]["generator"]["voices"]
+        self.speech_generators = {
+            depth: TTSGenerator(voice=voice_id)
+            for depth, voice_id in voices.items()
+        }
         self._timeout: int = timeout
         self._max_workers: int = max_workers
         
@@ -53,8 +56,9 @@ class MultimediaManager:
         # Get music path
         music_path = get_music(news_depth)
         
-        # Generate audio and subtitle first
-        audio_path, subtitle_path = await self.speech_generator.generate(news_data.script)
+        # Generate audio and subtitle first (voice selected by depth)
+        generator = self.speech_generators.get(news_depth, self.speech_generators["flash"])
+        audio_path, subtitle_path = await generator.generate(news_data.script)
         
         loop = asyncio.get_running_loop()
         # Submit the task to the executor and get a Future object
