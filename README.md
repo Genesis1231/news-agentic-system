@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/public/burst-logo.svg" alt="Burst Logo" width="120" />
+  <img src="docs/logo.jpeg" alt="Burst Logo"  />
 </p>
 
 <h1 align="center">BURST</h1>
