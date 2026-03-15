@@ -16,6 +16,7 @@ class NewsStatus(StrEnum):
     REVIEWED = "Reviewed"
     APPROVED = "Approved"
     REJECTED = "Rejected"
+    DUPLICATE = "Duplicate"
     FAILED = "Failed"
     
 class NewsPriority(Enum):

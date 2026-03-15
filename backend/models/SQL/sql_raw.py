@@ -2,6 +2,7 @@ from typing import List, Dict, Any
 from datetime import datetime
 from sqlalchemy import Integer, String, DateTime, Boolean, JSON, Float, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from pgvector.sqlalchemy import Vector
 
 from .base import BaseDB
 
@@ -31,12 +32,14 @@ class RawNewsDB(BaseDB):
     impact_score: Mapped[float] = mapped_column(Float, default=0.0)
     
     # Classification fields
+    headline: Mapped[str] = mapped_column(String(512), default="")
     news_category: Mapped[List[str]] = mapped_column(JSON, default=list)
     news_type: Mapped[List[str]] = mapped_column(JSON, default=list)
     sentiment: Mapped[str] = mapped_column(String(16), default="NEUTRAL")
     entities: Mapped[List[str]] = mapped_column(JSON, default=list)
     source_level: Mapped[str] = mapped_column(String(16), default="TERTIARY")
     relevance: Mapped[float] = mapped_column(Float, default=0.0)
+    embedding = mapped_column(Vector(768), nullable=True)
     
     # Processing status
     is_processed: Mapped[bool] = mapped_column(Boolean, default=False)

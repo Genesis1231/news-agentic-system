@@ -1,5 +1,6 @@
 # config settings v0.2
 
+# The news agency information
 app:
   name: [name of the channel]
   description: description of the channel
@@ -7,6 +8,7 @@ app:
   url: [url of the channel]
   debug_mode: [True/False]
 
+# Database settings
 database:
   host: [host of the database]
   port: [port of the database]
@@ -14,11 +16,13 @@ database:
   password: [password of the database]
   database: [database of the database]
 
+# Data storage configuration
 directory:
   download: data/download
   media: data/raw
   output: [path to the output directory]
 
+# Redis configuration
 redis:
   host: localhost
   port: 6379
@@ -28,11 +32,19 @@ redis:
     main: 5
     monitor: 15
 
+# Text embedding for semantic search and deduplication
+embedding:
+  provider: 
+  model: 
+  base_url: 
+
+# Scraping twitter easy implementation, you might not need this
 apify:
   actor_twitter: CJdippxWmn9uRfooo
   concurrency: 10
   batch_size: 5
 
+# TTS configuration, ElevenLabs for best quality
 TTS:
   media_folder: data/audio
   generator:
@@ -41,8 +53,8 @@ TTS:
     language: en
     voice: [ElevenLabs voice ID]
 
+# Dashboard authentication setting
 auth:
   username: [username of the dashboard]
   password: [password of the dashboard]
-
 

@@ -1,5 +1,5 @@
 from config import logger
-from typing import Any, Dict, List, Mapping, Sequence, Tuple, Type, cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, cast
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -104,10 +104,17 @@ class DataInterface:
             logger.error(f"Error loading raw data from database: {e}")
             return []
         
-    async def load_raw_news(self, **kwargs) -> List[RawNewsDB]:
+    async def load_raw_news(
+        self,
+        time_range: Optional[Tuple[datetime, datetime]] = None,
+        limit: int = 100,
+        **kwargs,
+    ) -> List[RawNewsDB]:
         """ Load raw news from database."""
-        try:        
-            result = await self.database_manager.query(RawNewsDB, filters=kwargs)
+        try:
+            result = await self.database_manager.query(
+                RawNewsDB, time_range=time_range, limit=limit, filters=kwargs
+            )
             return cast(List[RawNewsDB], result or [])
         except Exception as e:
             logger.error(f"Error loading raw news from database: {e}")

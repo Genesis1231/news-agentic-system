@@ -70,8 +70,12 @@ def _build_row(raw, news_items) -> dict:
     # Author name from the eager-loaded relationship
     author_name = raw.author.name if raw.author else raw.author_idname
 
-    # Headline: use title, fallback to author+source
-    headline = raw.title if raw.title else f"{author_name} posted on {raw.source_name}."
+    # Headline: prefer headline, then title, then fallback
+    headline = (
+        raw.headline if getattr(raw, "headline", None)
+        else raw.title if raw.title
+        else f"{author_name} posted on {raw.source_name}."
+    )
 
     return {
         "id": raw.id,

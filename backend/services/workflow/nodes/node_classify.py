@@ -8,6 +8,8 @@ from backend.core.redis import tracker
 from backend.core.database import DataInterface
 from backend.services.workflow.state import NewsState, NewsStatus
 from backend.services.workflow.agents import ClassificationAgent
+from backend.utils.vector.embeddings import EmbeddingEngine
+from backend.utils.dedup import check_duplicate
 
 class ClassificationNode:
     def __init__(
@@ -25,6 +27,8 @@ class ClassificationNode:
             model_name=model_name,
             temperature=temperature,
         )
+        self.embedding_engine = EmbeddingEngine()
+        self.embedding_engine.init_model()
 
     async def __call__(self, state: NewsState) -> Command:
 
@@ -52,6 +56,27 @@ class ClassificationNode:
         
         # Merge the classification result into the news data
         raw_data = raw_data.merge_classification(classification)
+
+        # Generate embedding for dedup
+        embed_text = f"{raw_data.headline} | {', '.join(raw_data.entities)}"
+        embedding = await self.embedding_engine.embed_one(embed_text)
+
+        if embedding:
+            # Check for duplicates before persisting
+            match = await check_duplicate(self.database, raw_data, embedding)
+            if match:
+                raw_data.raw_metadata = {"duplicate_of": match.id}
+                raw_data.embedding = embedding
+                await self.database.update_raw_news(raw_id, raw_data)
+                match_headline = match.headline or match.title
+                await tracker.log(raw_id, f"Duplicate of #{match.id} ({match_headline}). Skipping.")
+                return Command(
+                    update={"status": NewsStatus.DUPLICATE},
+                    goto=END,
+                )
+
+            # Store embedding for future comparisons
+            raw_data.embedding = embedding
 
         # Persist classification to database so dashboard can display it
         await self.database.update_raw_news(raw_id, raw_data)

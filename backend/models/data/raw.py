@@ -1,5 +1,5 @@
 from config import logger
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 from datetime import datetime, timezone
 from textwrap import dedent
@@ -22,6 +22,7 @@ class RawNewsItem(BaseModel):
     
     # Content fields
     title: str = Field(default="", description="Title of the news item")
+    headline: str = Field(default="", description="Editorial headline from classification")
     text: str = Field(..., description="Main content text")
     media_content: Dict[str, Any] = Field(default_factory=dict, description="Media content")
     
@@ -36,12 +37,19 @@ class RawNewsItem(BaseModel):
     entities: List[str] = Field(default=[], description="The entities in the news")
     relevance: float = Field(default=0.0, description="Relevance score to the target audience")
 
+    # Embedding for dedup
+    embedding: Optional[List[float]] = Field(default=None, description="Semantic embedding vector")
+
     # Processing status
     is_processed: bool = Field(default=False, description="Whether item has been processed")
+
+    # Additional metadata
+    raw_metadata: Dict[str, Any] = Field(default_factory=dict, description="Extra metadata")
    
     model_config = {
         "use_enum_values": True,
-        "from_attributes": True
+        "from_attributes": True,
+        "arbitrary_types_allowed": True,
     }
     
     def to_dict(self) -> Dict[str, Any]:
@@ -80,6 +88,15 @@ class RawNewsItem(BaseModel):
             
         return cls.model_validate(db_data)
     
+    @field_validator('embedding', mode='before')
+    def validate_embedding(cls, value):
+        """Coerce numpy arrays from pgvector to plain lists."""
+        if value is None:
+            return None
+        if hasattr(value, 'tolist'):
+            return value.tolist()
+        return value
+
     @field_validator('source_url')
     def validate_url(cls, value):
         """Validate the URL of the news item."""
@@ -160,7 +177,7 @@ class RawNewsItem(BaseModel):
     def merge_classification(self, data: Dict[str, Any]) -> "RawNewsItem":
         """ Merge classification data to RawNewsItem."""
         try:
-            for field in ['title', 'news_category', 'news_type', 'source_level', 
+            for field in ['title', 'headline', 'news_category', 'news_type', 'source_level',
             'sentiment', 'entities', 'relevance', "text"]:
                 setattr(self, field, data.get(field, getattr(self, field)))
         except Exception as e:

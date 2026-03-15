@@ -36,12 +36,13 @@ Here is the content:
          * THE STORY (30-60 seconds) — Lay out the core news. Who, what, when, where. Ground the listener in what actually happened. Use the source content as the backbone.
          * THE CONTEXT (45-75 seconds) — This is what separates deep coverage from a headline. Connect this story to the bigger picture: industry trends, historical precedents, power dynamics, or technical implications. Draw heavily from research notes here.
          * THE ANALYSIS (45-75 seconds) — The payoff. Present your take, explore multiple angles, surface what the industry is missing, and offer contrarian perspectives where warranted. Use specific data points and quotes from the research to anchor your arguments.
-         * THE TAKEAWAY (15-25 seconds) — Land it clean. What should the audience watch for next? What does this mean for them? End with a forward-looking thought that lingers. No forced sign-offs.
+         * THE TAKEAWAY (15-25 seconds) — Land it clean. What does this mean for the listener — their work, their projects, their career? End with a forward-looking thought that lingers. No forced sign-offs.
 
    2. Tone & Voice:
-      - Think YouTube tech essayist: knowledgeable, opinionated, conversational.
+      - Think YouTube tech commentator who's genuinely in the trenches — someone the audience feels is reacting to the news *with* them, not reporting *at* them.
       - Speak with authority, not hype. Confidence without arrogance.
       - Use natural, spoken language, but more measured and deliberate than a quick news flash.
+      - Make it personal where appropriate — "if you're building with this," "for anyone who's tried X" — the audience should feel like this story is about their world.
       - Wit and sharp observations are welcome. Forced humor is not.
 
    3. Transitions & Flow:

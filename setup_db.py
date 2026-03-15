@@ -1,4 +1,5 @@
 import asyncio
+from sqlalchemy import text
 from backend.models.SQL import AuthorDB
 from backend.models.data import Author
 from backend.models.schema.enums import AuthorType
@@ -12,7 +13,10 @@ async def create_key_authors():
     async with db.engine.begin() as conn:
         # Drop all existing tables
         await conn.run_sync(BaseDB.metadata.drop_all)
-        
+
+        # Enable pgvector extension before creating tables
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+
         # Create all tables with new schema
         await conn.run_sync(BaseDB.metadata.create_all)
     
