@@ -2,7 +2,7 @@ from config import logger
 from typing import List
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 
 from backend.models.data import RawNewsItem
 from backend.utils.prompt import load_prompt
@@ -24,16 +24,17 @@ class NewsResearcher:
         model_name: str = "claude-sonnet-4-6",
         temperature: float = 0.3,
     ) -> None:
-        self.model = ChatAnthropic(
-            model_name=model_name,
-            temperature=temperature,
-            timeout=300
-        )
         self.system_prompt = load_prompt("research_agent")
-        self.agent = create_react_agent(
-            model=self.model,
+        
+        self.agent = create_agent(
+            model=ChatAnthropic( 
+                model_name=model_name,
+                temperature=temperature,
+                timeout=600,
+                max_tokens_to_sample=8192,
+            ), #type: ignore
             tools=ALL_RESEARCH_TOOLS,
-            prompt=self.system_prompt,
+            system_prompt=self.system_prompt,
         )
 
     def _build_user_message(self, news_item: RawNewsItem, topics: List[str]) -> str:
@@ -78,7 +79,6 @@ class NewsResearcher:
                 {"messages": [HumanMessage(content=user_message)]},
                 config={"recursion_limit": self.RECURSION_LIMIT},
             )
-            # The last message is the agent's final synthesized answer
             final_message = result["messages"][-1]
             return final_message.content
 

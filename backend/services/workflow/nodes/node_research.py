@@ -36,7 +36,7 @@ class ResearchNode:
         return Command(
             update={
                 "status": NewsStatus.RESEARCHED,
-                "research": {"research_notes": research_notes},
+                "research": {"research_notes": research_notes}, 
             },
             goto="node_write",
         )

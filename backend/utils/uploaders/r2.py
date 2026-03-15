@@ -3,7 +3,7 @@ import json
 import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Set
 
 import boto3
 from botocore.exceptions import ClientError
@@ -28,6 +28,7 @@ class R2Uploader:
         r2_config = configuration.get("r2", {})
         self._public_url = r2_config.get("public_url", "").rstrip("/")
         self._stories_limit = r2_config.get("stories_limit", 50)
+        self._cleanup_enabled = r2_config.get("cleanup_old_files", True)
 
     async def upload_audio(self, local_path: str) -> Optional[str]:
         """Upload an audio file and its companion subtitle JSON to R2.
@@ -123,8 +124,59 @@ class R2Uploader:
                 ContentType="application/json",
             )
             logger.info(f"Updated stories.json with {len(stories)} items.")
+
+            # Clean up orphaned audio files no longer in the index
+            if self._cleanup_enabled:
+                active_keys = set()
+                for story in stories:
+                    if url := story.get("audio_url", ""):
+                        # Extract R2 key from public URL
+                        key = url.replace(f"{self._public_url}/", "")
+                        active_keys.add(key)
+                    if url := story.get("subtitle_url", ""):
+                        key = url.replace(f"{self._public_url}/", "")
+                        active_keys.add(key)
+                await self._cleanup_old_files(active_keys)
+
             return True
 
         except Exception as e:
             logger.error(f"Failed to update stories.json: {e}")
             return False
+
+    async def _cleanup_old_files(self, active_keys: Set[str]) -> None:
+        """Delete audio/subtitle files from R2 that are not in the active stories index."""
+        try:
+            # List all objects under audio/
+            response = await asyncio.to_thread(
+                self._client.list_objects_v2,
+                Bucket=self._bucket,
+                Prefix="audio/",
+            )
+
+            contents = response.get("Contents", [])
+            if not contents:
+                return
+
+            orphaned = [
+                {"Key": obj["Key"]}
+                for obj in contents
+                if obj["Key"] not in active_keys
+            ]
+
+            if not orphaned:
+                return
+
+            # S3 delete_objects supports max 1000 keys per request
+            for i in range(0, len(orphaned), 1000):
+                batch = orphaned[i:i + 1000]
+                await asyncio.to_thread(
+                    self._client.delete_objects,
+                    Bucket=self._bucket,
+                    Delete={"Objects": batch, "Quiet": True},
+                )
+
+            logger.info(f"R2 cleanup: deleted {len(orphaned)} orphaned files.")
+
+        except Exception as e:
+            logger.error(f"R2 cleanup failed: {e}")

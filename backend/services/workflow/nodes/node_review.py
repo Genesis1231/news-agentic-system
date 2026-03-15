@@ -12,7 +12,7 @@ class ReviewNode:
     def __init__(
         self,
         platform: str = "OpenAI", 
-        model_name: str | None = "chatgpt-5.4",
+        model_name: str | None = "gpt-5.4",
         temperature: float | None = 0.6,
     ) -> None:
         """Initialize the ReviewNode."""
@@ -29,6 +29,7 @@ class ReviewNode:
         raw_id = raw_data.id
         depth = state["depth"]
         script = state["draft"]
+        notes = state.get("research", {}).get("research_notes", "")
 
         # track the processing
         await tracker.log(str(raw_id), f"Chief editor is reviewing the {depth} script.")
@@ -36,6 +37,8 @@ class ReviewNode:
         final_review = await self.agent.review(
             news_item=raw_data, 
             draft=script, 
+            research_notes=notes,
+            depth=depth
         )
         
         # If no final review is generated, return an error.
@@ -54,9 +57,9 @@ class ReviewNode:
             
         if not approved:
             count = state.get("revision", {}).get("count", 0)
-            if count > 2:
+            if count >= 2:
                 # TODO: send to human editor
-                await tracker.log(str(raw_id), f"Revised more than 3 times for {depth} script. Send to human editor.")
+                await tracker.log(str(raw_id), f"Revised {count} times for {depth} script. Send to human editor.")
                 return Command(
                     update={ "status": NewsStatus.FAILED },
                     goto=END

@@ -88,7 +88,12 @@ def render_trend_chart(news_data: pd.DataFrame) -> None:
         st.info("No news items found.")
         return
 
-    hourly_counts = process_hourly_trend_data(news_data)
+    try:
+        hourly_counts = process_hourly_trend_data(news_data)
+    except Exception as exc:
+        st.warning("Unable to render trend chart due to invalid timestamp data.")
+        st.caption(f"Chart error: {exc}")
+        return
 
     chart = create_trend_chart(
         df=hourly_counts,
@@ -99,7 +104,7 @@ def render_trend_chart(news_data: pd.DataFrame) -> None:
     )
 
     if chart:
-        st.altair_chart(chart, width='content')
+        st.altair_chart(chart, use_container_width=True)
 
 
 def render_metrics_section(filtered_data: pd.DataFrame) -> None:
@@ -190,8 +195,10 @@ def create_trend_chart(
     if df.empty:
         return None
 
+    max_count = int(df[value_column].max()) if not df[value_column].empty else 1
+    y_max = max(max_count + 1, 5)  # At least 5 for visual clarity
+
     chart = alt.Chart(df).mark_bar(
-        width=40,
         color='#d4a843',
         opacity=0.85,
         cornerRadiusTopLeft=3,
@@ -199,8 +206,8 @@ def create_trend_chart(
     ).encode(
         x=alt.X(f'{time_column}:T', axis=alt.Axis(format='%_I%p', title=None, labelColor='#8b919a', labelFont='DM Sans')),
         y=alt.Y(f'{value_column}:Q',
-                axis=alt.Axis(values=list(range(0, 11)), tickMinStep=1, title=None, labelColor='#8b919a', labelFont='DM Sans'),
-                scale=alt.Scale(domain=[0, 10])
+                axis=alt.Axis(tickMinStep=1, title=None, labelColor='#8b919a', labelFont='DM Sans'),
+                scale=alt.Scale(domain=[0, y_max])
         ),
         tooltip=[alt.Tooltip(f'{time_column}:T', format='%b %d, %H:%M'), value_column]
     ).properties(
@@ -228,16 +235,24 @@ def process_hourly_trend_data(
     if df.empty:
         return pd.DataFrame()
 
-    now = datetime.now(timezone.utc)
+    if timestamp_col not in df.columns:
+        return pd.DataFrame()
+
+    now = pd.Timestamp.now(tz='UTC')
     df_copy = df.copy()
 
-    if not pd.api.types.is_datetime64_any_dtype(df_copy[timestamp_col]):
-        df_copy[timestamp_col] = pd.to_datetime(df_copy[timestamp_col])
+    # Normalize timestamps to UTC to avoid tz-aware vs tz-naive merge errors.
+    df_copy[timestamp_col] = pd.to_datetime(df_copy[timestamp_col], utc=True, errors='coerce')
+    df_copy = df_copy.dropna(subset=[timestamp_col])
+
+    if df_copy.empty:
+        return pd.DataFrame()
 
     df_copy['hour'] = df_copy[timestamp_col].dt.floor('h')
 
+    # Use pd.Timestamp for the end so timezone representation matches the data.
     hour_range = pd.date_range(
-        end=now.replace(minute=0, second=0, microsecond=0),
+        end=now.floor('h'),
         periods=past_hours,
         freq='h'
     )

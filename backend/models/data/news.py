@@ -38,8 +38,11 @@ class NewsItem(BaseModel):
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert Pydantic News model to dictionary."""
-        model_data = self.model_dump(exclude={"author"})
-        model_data["source_url"] = str(model_data["source_url"]) if model_data["source_url"] is not None else None
+        model_data = self.model_dump()
+
+        # Convert HttpUrl objects in cited_sources to strings
+        if model_data.get("cited_sources"):
+            model_data["cited_sources"] = [str(url) for url in model_data["cited_sources"]]
 
         return model_data
     

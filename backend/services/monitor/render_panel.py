@@ -46,7 +46,11 @@ def render_panel(database: DataInterface, logout_callback=None) -> None:
         )
 
         # Sort options
-        st.session_state.sort_by = st.selectbox("Sort", ["Newest First", "Oldest First"], label_visibility="collapsed")
+        st.session_state.sort_by = st.selectbox(
+            label="Sort", 
+            options=["Descending ID", "Ascending ID", "Newest First", "Oldest First"],
+            label_visibility="collapsed"
+        )
 
         # Spacer
         st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)

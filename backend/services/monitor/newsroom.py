@@ -78,7 +78,7 @@ class Newsroom:
             'search_query': "",
             'status_filter': [],
             'source_filter': [],
-            'sort_by': "Newest First"
+            'sort_by': "ID (Newest)"
         }
 
         for key, value in defaults.items():

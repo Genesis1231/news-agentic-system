@@ -13,6 +13,24 @@ from backend.models.SQL import RawNewsDB, NewsDB
 from .styles import STAGES
 
 
+def _run_async(coro):
+    """Run an async coroutine with a persistent event loop.
+
+    asyncio.run() creates and destroys a loop each call, which breaks
+    SQLAlchemy's async connection pool on subsequent Streamlit reruns
+    because pooled connections remain bound to the (now closed) loop.
+    """
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
+
+
 @st.cache_data(ttl=3)
 def fetch_news_data(_database: DataInterface, limit: int = 1000) -> pd.DataFrame:
     """Fetch news data from PostgreSQL.
@@ -27,7 +45,7 @@ def fetch_news_data(_database: DataInterface, limit: int = 1000) -> pd.DataFrame
     default_columns = ['id', 'timestamp', 'status', 'headline', 'author', 'url',
                        'source', 'details', 'log']
     try:
-        df = asyncio.run(_fetch_from_postgres(_database, limit))
+        df = _run_async(_fetch_from_postgres(_database, limit))
         if df.empty:
             return pd.DataFrame(columns=default_columns)
         return df.reindex(columns=default_columns, fill_value=None)
@@ -230,16 +248,13 @@ def filter_news_dataframe(
             df = df[df['source'] == source_filter]
 
     # Apply sorting
-    if 'timestamp' in df.columns:
-        # Ensure timestamp is datetime before sorting
-        if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
-            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
-
-        # Handle different sorting options
-        if sort_by == "Newest First":
-            df = df.sort_values('timestamp', ascending=False, na_position='last')  # Newest first
-        elif sort_by == "Oldest First":
-            df = df.sort_values('timestamp', ascending=True, na_position='last')   # Oldest first
+    if sort_by in ("Descending ID", "Ascending ID") and 'id' in df.columns:
+        ascending = sort_by == "Ascending ID"
+        df = df.sort_values('id', ascending=ascending, na_position='last')
+    elif 'timestamp' in df.columns:
+        df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
+        ascending = sort_by == "Oldest First"
+        df = df.sort_values('timestamp', ascending=ascending, na_position='last')
 
     return df
 

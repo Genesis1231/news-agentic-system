@@ -223,8 +223,8 @@ class TwitterReporter(BaseReporter):
             # Filter out invalid runs
             filtered_results = [run for run in batch_results if run is not None and not isinstance(run, Exception)]
             
-            run_results.extend(filtered_results) 
-        
+            run_results.extend(filtered_results)
+
         return run_results     
     
     async def preprocess_tweet(self, tweet: Dict[str, Any], raw_data_id: int | str) -> None:

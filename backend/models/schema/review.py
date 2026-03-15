@@ -35,8 +35,8 @@ class Review(BaseModel):
         description="The script's engagement potential score."
     )
     
-    revision_notes: List[str] = Field(
-        default_factory=list,
+    revision_notes: str = Field(
+        default="",
         description="Revisions to the script in list format."
     )
     
@@ -53,9 +53,10 @@ class Review(BaseModel):
 
     @field_validator('revision_notes', mode='before')
     def validate_list_fields(cls, v):
-        if isinstance(v, str):
-            return [v]
-        if isinstance(v, List):
-            return v
-        return []
+        if not isinstance(v, str):
+            try:
+                return str(v)
+            except (ValueError, TypeError):
+                return ""   
+        return v
 

@@ -1,13 +1,42 @@
 import asyncio
 from pydantic import HttpUrl
 from sqlalchemy import text
+from redis.asyncio import Redis, ConnectionPool
 from backend.models.SQL import AuthorDB
 from backend.models.data import Author
 from backend.models.schema.enums import AuthorType
 from backend.core.database.database_manager import DatabaseManager
 from backend.models.SQL.base import BaseDB
+from config import configuration
+
+
+async def flush_redis_databases() -> None:
+    """Flush configured Redis databases used by the application."""
+    redis_host = configuration["redis"]["host"]
+    redis_port = configuration["redis"]["port"]
+    redis_databases = configuration["redis"].get("database", {})
+
+    for database_name, database_index in redis_databases.items():
+        pool = ConnectionPool(
+            host=redis_host,
+            port=redis_port,
+            db=database_index,
+            decode_responses=True,
+        )
+        client = Redis(connection_pool=pool)
+
+        try:
+            await client.flushdb()
+            print(
+                f"Redis database '{database_name}' (db={database_index}) flushed successfully!"
+            )
+        finally:
+            await client.close()
+            await pool.disconnect()
     
 async def create_key_authors():
+    await flush_redis_databases()
+
     # Initialize database manager
     db = DatabaseManager()
 
@@ -62,19 +91,31 @@ async def create_key_authors():
             wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Sam_Altman"),
             linkedin_url=HttpUrl("https://www.linkedin.com/in/sam-altman-4b290110/")
         ),
-        
         Author(
-            idname="satyanadella",
-            name="Satya Nadella",
+            idname="DarioAmodei",
+            name="Dario Amodei",
             aliases=[],
             type=AuthorType.TECH_LEADER,
             is_key_figure=True,
-            affiliations=["Microsoft", "Madrona Venture Group"],
-            description="CEO and Chairman of Microsoft since 2014. Known for transforming Microsoft's culture and strategic direction, particularly in cloud computing and AI.",
-            x_url=HttpUrl("https://x.com/satyanadella"),
-            wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Satya_Nadella"),
-            linkedin_url=HttpUrl("https://www.linkedin.com/in/satyanadella/")
+            affiliations=["Anthropic"],
+            description="Co-founder and CEO of Anthropic. Known for his work on large language models, AI safety, and the development of Claude.",
+            website_url=HttpUrl("https://www.darioamodei.com/"),
+            x_url=HttpUrl("https://x.com/DarioAmodei"),
+            wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Dario_Amodei")
         ),
+        
+        # Author(
+        #     idname="satyanadella",
+        #     name="Satya Nadella",
+        #     aliases=[],
+        #     type=AuthorType.TECH_LEADER,
+        #     is_key_figure=True,
+        #     affiliations=["Microsoft", "Madrona Venture Group"],
+        #     description="CEO and Chairman of Microsoft since 2014. Known for transforming Microsoft's culture and strategic direction, particularly in cloud computing and AI.",
+        #     x_url=HttpUrl("https://x.com/satyanadella"),
+        #     wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Satya_Nadella"),
+        #     linkedin_url=HttpUrl("https://www.linkedin.com/in/satyanadella/")
+        # ),
         Author(
             idname="sundarpichai",
             name="Sundar Pichai",
@@ -87,6 +128,29 @@ async def create_key_authors():
             wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Sundar_Pichai"),
             linkedin_url=HttpUrl("https://www.linkedin.com/in/sundarpichai"),
             instagram_url=HttpUrl("https://www.instagram.com/sundarpichai/")
+        ),
+        Author(
+            idname="demishassabis",
+            name="Demis Hassabis",
+            aliases=[],
+            type=AuthorType.TECH_LEADER,
+            is_key_figure=True,
+            affiliations=["Google DeepMind", "Google", "Isomorphic Labs"],
+            description="Co-founder and CEO of Google DeepMind. Known for leading AI research across reinforcement learning, multimodal systems, and scientific discovery.",
+            x_url=HttpUrl("https://x.com/demishassabis"),
+            wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Demis_Hassabis"),
+            linkedin_url=HttpUrl("https://uk.linkedin.com/in/demishassabis")
+        ),
+        Author(
+            idname="ylecun",
+            name="Yann LeCun",
+            aliases=[],
+            type=AuthorType.TECH_LEADER,
+            is_key_figure=True,
+            affiliations=["Advanced Machine Intelligence", "New York University"],
+            description="Founder of Advanced Machine Intelligence and professor at New York University. Known for foundational work in deep learning and for shaping research directions in AI.",
+            x_url=HttpUrl("https://x.com/ylecun"),
+            wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Yann_LeCun")
         )
         # Author(
         #     idname="PDChina",

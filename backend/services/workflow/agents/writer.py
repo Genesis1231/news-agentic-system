@@ -41,8 +41,8 @@ class NewsWriter(BaseAgent):
     def build_content(
         self, 
         news_item: RawNewsItem, 
-        research_notes: str | None = None, 
-        editorial_notes: List[str] | None = None
+        research_notes: str = "", 
+        editorial_notes: List[str] = []
     ) -> str:
         """Get the content for the research agent"""
         
@@ -82,11 +82,9 @@ class NewsWriter(BaseAgent):
         return user_prompt
     
     
-    def build_revise_prompt(self, original_script: str, revision_notes: List[str]) -> str:
+    def build_revise_prompt(self, original_script: str, revision_notes: str) -> str:
         """Get the user prompt for the research agent"""
-        
-        revision_notes = "\n".join(revision_notes)
-                
+                      
         # build the user prompt 
         user_prompt = f"""
             Here is the previous draft script:
@@ -139,7 +137,7 @@ class NewsWriter(BaseAgent):
         news_item: RawNewsItem,
         research_notes: str,
         original_script: str,
-        revision_notes: List[str] | None
+        revision_notes: str
     ) -> Dict[str, Any] | None:
         """Main response function that build the prompt and get response from LLM"""
         

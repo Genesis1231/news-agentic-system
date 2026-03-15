@@ -29,6 +29,7 @@ class FinalizeNode:
         raw_id = raw_news.id
         depth = state["depth"]
         script = state.get("draft")
+        
 
         if not raw_id:
             logger.error("Finalize called with no raw_id.")
@@ -59,9 +60,9 @@ class FinalizeNode:
             if not data_id:
                 return Command(update={"status": NewsStatus.FAILED}, goto=END)
 
-            # update raw news
-            await self.database.update_raw_news(raw_id, raw_news)
-            await self.redis_client.push(RedisQueue.PROCESSED, data_id)
+            # update raw news as processed
+            await self.database.update_raw_news(raw_id, {"is_processed": True})
+            await self.redis_client.push(RedisQueue.PROCESSED, str(data_id))
 
         except Exception as e:
             logger.error(f"Error saving processed news: {e}")

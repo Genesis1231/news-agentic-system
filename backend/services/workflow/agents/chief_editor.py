@@ -39,19 +39,44 @@ class ChiefEditor(BaseAgent):
             }
         )
     
-    def build_revision_prompt(self) -> str:
+    def build_revision_prompt(
+        self,
+        depth: str,
+        draft: str, 
+        content: str, 
+        research_notes: str = "",
+    ) -> str:
         """Build the user prompt for the revision agent"""
         
         review_prompt = f"""
-            
-            Output strictly in provided JSON format schema:
+            **REVIEW MATERIALS**
+            Here is the draft script for review:
+            SCRIPT TYPE: {depth.upper()}
+            <DRAFT_SCRIPT>
+            {draft}
+            </DRAFT_SCRIPT>
+
+            The draft script is based on:
+            <SOURCE_CONTENT>
+            {content}
+            </SOURCE_CONTENT>
         """
+        if research_notes:
+            review_prompt += f"""
+                Here are the researches done for this news item:
+                <research_notes>
+                    {research_notes}
+                </research_notes>
+            """
+
         return review_prompt
     
     async def review(
-        self, 
+        self,
+        depth: str,
         news_item: RawNewsItem, 
-        draft: str, 
+        draft: str,
+        research_notes: str = "",
     ) -> Dict[str, Any] | None:
         """Main response function that build the prompt and get response from LLM"""
         
@@ -60,11 +85,15 @@ class ChiefEditor(BaseAgent):
             return None
         
         # load the system prompt and user prompt
-        system_prompt = load_prompt("finalize_review").format(
-            content=news_item.composed_content,
-            draft=draft
+        content = news_item.composed_content
+            
+        system_prompt = load_prompt("finalize_review")
+        user_prompt = self.build_revision_prompt(
+            depth=depth,
+            draft=draft, 
+            content=content, 
+            research_notes=research_notes
         )
-        user_prompt = self.build_revision_prompt()
         
         prompt = ChatPromptTemplate([
             ("system", system_prompt),

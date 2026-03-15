@@ -55,8 +55,13 @@ TTS:
       flash: [ElevenLabs voice ID for flash]
       deep: [ElevenLabs voice ID for deep]
 
+# Cloudflare R2 storage
+r2:
+  public_url: [your R2 public bucket URL]
+  stories_limit: 100
+  cleanup_old_files: True  # delete orphaned audio files not in the stories index
+
 # Dashboard authentication setting
 auth:
   username: [username of the dashboard]
   password: [password of the dashboard]
-
