@@ -1,8 +1,8 @@
 import asyncio
 import signal
+from dotenv import load_dotenv
 from config import logger
 from backend.services.workflow import FlowOrchestrator
-from dotenv import load_dotenv
 
 load_dotenv()
 

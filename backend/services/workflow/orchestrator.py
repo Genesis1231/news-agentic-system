@@ -82,7 +82,7 @@ class FlowOrchestrator:
             logger.error(f"Error processing news: {e}\n{traceback.format_exc()}")
             return None
         
-        return f"News {content_id} {result.get('status', 'Unknown') if isinstance(result, dict) else 'Unknown'}"
+        return result
             
     async def _process_news(self, data_id: str)-> None:
         """Process a single news item through the workflow."""

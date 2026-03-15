@@ -51,7 +51,9 @@ TTS:
     platform: ElevenLabs
     model: eleven_flash_v2
     language: en
-    voice: [ElevenLabs voice ID]
+    voices:
+      flash: [ElevenLabs voice ID for flash]
+      deep: [ElevenLabs voice ID for deep]
 
 # Dashboard authentication setting
 auth:

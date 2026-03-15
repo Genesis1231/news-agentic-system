@@ -57,8 +57,8 @@ class ClassificationNode:
         # Merge the classification result into the news data
         raw_data = raw_data.merge_classification(classification)
 
-        # Generate embedding for dedup
-        embed_text = f"{raw_data.headline} | {', '.join(raw_data.entities)}"
+        # Generate embedding for dedup (headline + full text for topic discrimination)
+        embed_text = f"{raw_data.headline} | {raw_data.text}"
         embedding = await self.embedding_engine.embed_one(embed_text)
 
         if embedding:

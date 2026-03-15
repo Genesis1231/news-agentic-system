@@ -1,6 +1,5 @@
 import asyncio
 import signal
-
 from dotenv import load_dotenv
 
 from config import logger

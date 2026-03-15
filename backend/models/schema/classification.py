@@ -64,13 +64,15 @@ class Classification(BaseModel):
     entities: List[str] = Field(..., description="The entities mentioned in the content")  
     
     
-    @field_validator('news_category', 'news_type', 'entities', mode='before')
+    @field_validator('news_category', 'news_type', mode='before')
     def ensure_list(cls, v):
         v = [v] if isinstance(v, str) else v
         valid_cats = set(get_args(ENUM_NEWS_CATEGORY))
         return [c.upper() if c.upper() in valid_cats else "OTHER" for c in v]
-        
-        return v
+
+    @field_validator('entities', mode='before')
+    def ensure_entity_list(cls, v):
+        return [v] if isinstance(v, str) else list(v)
     
     @field_validator('relevance', mode='before')
     def ensure_float(cls, v):

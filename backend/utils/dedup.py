@@ -11,7 +11,7 @@ from backend.core.database import DataInterface
 from backend.core.redis import tracker
 from backend.models.data import RawNewsItem
 
-SIMILARITY_THRESHOLD = 0.82
+SIMILARITY_THRESHOLD = 0.80
 
 
 def cosine_similarity(a: List[float], b: List[float]) -> float:

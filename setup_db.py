@@ -1,4 +1,5 @@
 import asyncio
+from pydantic import HttpUrl
 from sqlalchemy import text
 from backend.models.SQL import AuthorDB
 from backend.models.data import Author
@@ -43,10 +44,10 @@ async def create_key_authors():
             type=AuthorType.RESEARCHER,
             is_key_figure=True,
             description="Renowned computer scientist who co-founded OpenAI, served as Tesla's AI director, and founded Eureka Labs in 2024 to focus on AI education",
-            website_url="https://karpathy.ai",
-            x_url="https://x.com/karpathy",
-            youtube_url="https://www.youtube.com/andrejkarpathy",
-            wikipedia_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+            website_url=HttpUrl("https://karpathy.ai"),
+            x_url=HttpUrl("https://x.com/karpathy"),
+            youtube_url=HttpUrl("https://www.youtube.com/andrejkarpathy"),
+            wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Andrej_Karpathy"),
             affiliations=["Tesla", "OpenAI", "Eureka Labs"]
         ),
         Author(
@@ -57,36 +58,36 @@ async def create_key_authors():
             is_key_figure=True,
             affiliations=["OpenAI", "Y Combinator"],
             description="CEO of OpenAI, ex-president of Y Combinator. Known for his work in artificial intelligence and entrepreneurship.",
-            x_url="https://x.com/sama",
-            wikipedia_url="https://en.wikipedia.org/wiki/Sam_Altman",
-            linkedin_url="https://www.linkedin.com/in/sam-altman-4b290110/"
+            x_url=HttpUrl("https://x.com/sama"),
+            wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Sam_Altman"),
+            linkedin_url=HttpUrl("https://www.linkedin.com/in/sam-altman-4b290110/")
         ),
         
-        # Author(
-        #     idname="satyanadella",
-        #     name="Satya Nadella",
-        #     aliases=[],
-        #     type=AuthorType.TECH_LEADER,
-        #     is_key_figure=True,
-        #     affiliations=["Microsoft", "Madrona Venture Group"],
-        #     description="CEO and Chairman of Microsoft since 2014. Known for transforming Microsoft's culture and strategic direction, particularly in cloud computing and AI.",
-        #     x_url="https://x.com/satyanadella",
-        #     wikipedia_url="https://en.wikipedia.org/wiki/Satya_Nadella",
-        #     linkedin_url="https://www.linkedin.com/in/satyanadella/"
-        # ),
-        # Author(
-        #     idname="sundarpichai",
-        #     name="Sundar Pichai",
-        #     aliases=[],
-        #     type=AuthorType.TECH_LEADER,
-        #     is_key_figure=True,
-        #     affiliations=["Google", "Alphabet"],
-        #     description="CEO of Alphabet and Google since 2019. Led development of Chrome browser and Android OS before becoming CEO. Known for his leadership in AI, particularly with Google DeepMind and Gemini.",
-        #     x_url="https://x.com/sundarpichai",
-        #     wikipedia_url="https://en.wikipedia.org/wiki/Sundar_Pichai",
-        #     linkedin_url="https://www.linkedin.com/in/sundarpichai",
-        #     instagram_url="https://www.instagram.com/sundarpichai/"
-        # )
+        Author(
+            idname="satyanadella",
+            name="Satya Nadella",
+            aliases=[],
+            type=AuthorType.TECH_LEADER,
+            is_key_figure=True,
+            affiliations=["Microsoft", "Madrona Venture Group"],
+            description="CEO and Chairman of Microsoft since 2014. Known for transforming Microsoft's culture and strategic direction, particularly in cloud computing and AI.",
+            x_url=HttpUrl("https://x.com/satyanadella"),
+            wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Satya_Nadella"),
+            linkedin_url=HttpUrl("https://www.linkedin.com/in/satyanadella/")
+        ),
+        Author(
+            idname="sundarpichai",
+            name="Sundar Pichai",
+            aliases=[],
+            type=AuthorType.TECH_LEADER,
+            is_key_figure=True,
+            affiliations=["Google", "Alphabet"],
+            description="CEO of Alphabet and Google since 2019. Led development of Chrome browser and Android OS before becoming CEO. Known for his leadership in AI, particularly with Google DeepMind and Gemini.",
+            x_url=HttpUrl("https://x.com/sundarpichai"),
+            wikipedia_url=HttpUrl("https://en.wikipedia.org/wiki/Sundar_Pichai"),
+            linkedin_url=HttpUrl("https://www.linkedin.com/in/sundarpichai"),
+            instagram_url=HttpUrl("https://www.instagram.com/sundarpichai/")
+        )
         # Author(
         #     idname="PDChina",
         #     name="People's Daily",
