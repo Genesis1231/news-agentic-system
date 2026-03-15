@@ -95,14 +95,11 @@ class ChiefEditor(BaseAgent):
             research_notes=research_notes
         )
         
-        prompt = ChatPromptTemplate([
-            ("system", system_prompt),
-            ("user", user_prompt),
-        ])
+        messages = [("system", system_prompt), ("user", user_prompt)]
         
         try:
             logger.debug(f"Reviewing the script...")
-            response = await self._invoke(prompt.format_messages())
+            response = await self._invoke(messages)
 
             # serialize the response
             return response.model_dump()

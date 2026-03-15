@@ -41,8 +41,8 @@ class NewsWriter(BaseAgent):
     def build_content(
         self, 
         news_item: RawNewsItem, 
-        research_notes: str = "", 
-        editorial_notes: List[str] = []
+        research_notes: str | None = None, 
+        editorial_notes: List[str] | None = None
     ) -> str:
         """Get the content for the research agent"""
         
@@ -114,18 +114,15 @@ class NewsWriter(BaseAgent):
         content = self.build_content(news_item, research_notes, editorial_notes)
         system_prompt = load_prompt(f"create_news_{depth.lower()}").format(content=content)
         user_prompt = self.build_draft_prompt(editorial_notes)
-        
-        prompt = ChatPromptTemplate([
-            ("system", system_prompt),
-            ("user", user_prompt),
-        ])
-        
+
+        messages = [("system", system_prompt), ("user", user_prompt)]
+
         try:
             logger.debug(f"Generating script...")
-            response = await self._invoke(prompt.format_messages())
-            
+            response = await self._invoke(messages)
+
             return response.model_dump()
-        
+
         except Exception as e:
             logger.error(f"Failed to create script: {e}")
             return None
@@ -146,14 +143,11 @@ class NewsWriter(BaseAgent):
         system_prompt = load_prompt(f"create_news_{depth.lower()}").format(content=content)
         user_prompt = self.build_revise_prompt(original_script, revision_notes)
         
-        prompt = ChatPromptTemplate([
-            ("system", system_prompt),
-            ("user", user_prompt),
-        ])
+        messages = [("system", system_prompt), ("user", user_prompt)]
         
         try:
             logger.debug(f"Revising script...")
-            response = await self._invoke(prompt.format_messages())
+            response = await self._invoke(messages)
             
             return response.model_dump()
         

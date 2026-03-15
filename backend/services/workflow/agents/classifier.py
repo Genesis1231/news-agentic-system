@@ -62,14 +62,11 @@ class ClassificationAgent(BaseAgent):
         system_prompt = load_prompt("classify_content")
         user_prompt = self.build_user_prompt(news_item)
         
-        prompt = ChatPromptTemplate([
-            ("system", system_prompt),
-            ("user", user_prompt),
-        ])
+        messages = [("system", system_prompt), ("user", user_prompt)]
         
         try:
             logger.debug(f"Classifying potential news from {news_item.author_idname}")
-            response = await self._invoke(prompt.format_messages())
+            response = await self._invoke(messages)
             return response.model_dump()
 
         except Exception as e:

@@ -79,9 +79,7 @@ class ProductionDirector:
                 return
 
             # Upload TTS audio to R2
-            tts_audio_path = production_result.pop("tts_audio_path", None)
-            upload_path = tts_audio_path or production_result["audio_path"]
-            audio_url = await self.r2_uploader.upload_audio(upload_path)
+            audio_url = await self.r2_uploader.upload_audio(production_result["audio_path"])
             if audio_url:
                 production_result["audio_path"] = audio_url
 

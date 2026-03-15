@@ -72,14 +72,11 @@ class NewsEditor(BaseAgent):
         system_prompt = load_prompt("evaluate_content").format(content=news_item.composed_content)
         user_prompt = self.build_evaluate_prompt(news_item)
             
-        prompt = ChatPromptTemplate([
-            ("system", system_prompt),
-            ("user", user_prompt),
-        ])
+        messages = [("system", system_prompt), ("user", user_prompt)]
         
         try:
             logger.debug(f"Evaluating content from {news_item.author_idname}")
-            response = await self._invoke(prompt.format_messages())
+            response = await self._invoke(messages)
 
             # serialize the response
             response = response.model_dump()
@@ -102,15 +99,12 @@ class NewsEditor(BaseAgent):
         system_prompt = load_prompt("summarize_script").format(script=script)
         user_prompt = self.build_summarize_prompt(script)
 
-        prompt = ChatPromptTemplate([
-            ("system", system_prompt),
-            ("user", user_prompt),
-        ])
+        messages = [("system", system_prompt), ("user", user_prompt)]
 
         try:
             logger.debug("Summarizing script for news feed...")
-            response = await self._invoke(prompt.format_messages())
-            return re.sub(r"<think>.*?</think>", "", response.content, flags=re.DOTALL).strip()
+            response = await self._invoke(messages)
+            return re.sub(r"<tool_call>.*?<tool_call>", "", response.content, flags=re.DOTALL).strip()
 
         except Exception as e:
             logger.error(f"{self._platform} failed to summarize script: {e}")

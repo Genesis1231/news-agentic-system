@@ -26,35 +26,31 @@ def execute_production_worker(
     depth: str,
     audio_path: str,
     subtitle_path: str,
-    music_path: str,
+    music_path: str | None = None,
 ) -> Dict[str, str] | None:
     """Synchronous worker function for process pool (must be module-level)"""
-    
-    # # Defensive check against async code
-    # if asyncio.get_event_loop().is_running():
-    #     raise RuntimeError("Async context detected in worker process")
 
     # check if all files exist in the file system
     if not Path(audio_path).exists():
         logger.error(f"Missing audio file: {audio_path}")
         raise FileNotFoundError("Missing audio file")
-    
+
     if not Path(subtitle_path).exists():
         logger.error(f"Missing subtitle file: {subtitle_path}")
         raise FileNotFoundError("Missing subtitle file")
-    
-    if not Path(music_path).exists():
-        logger.error(f"Missing music file: {music_path}")
-        raise FileNotFoundError("Missing music file")
-    
+
+    if music_path and not Path(music_path).exists():
+        logger.warning(f"Music file not found: {music_path}, proceeding without music.")
+        music_path = None
+
     try:
         if not (producer := select_producer(depth)):
             logger.error(f"Invalid depth: {depth}, could not load a producer.")
             return None
-            
+
         return producer.produce(
             speech_path=str(audio_path),
-            music_path=str(music_path),
+            music_path=str(music_path) if music_path else None,
             subtitle_path=str(subtitle_path)
         )
         

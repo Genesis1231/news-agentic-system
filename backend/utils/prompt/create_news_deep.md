@@ -30,7 +30,7 @@ Here is the content:
 
 **SCRIPT ARCHITECTURE**
    1. Structure & Length:
-      - Target Duration: 2-5 minutes (roughly 500-700 words).
+      - Target Duration: 2-3 minutes (roughly 400-500 words).
       - Script Flow:
          * THE HOOK (10-20 seconds) — Open with a bold claim, a surprising fact, a provocative question, or a counterintuitive angle. Create a curiosity gap that makes the listener need to hear more.
          * THE STORY (30-60 seconds) — Lay out the core news. Who, what, when, where. Ground the listener in what actually happened. Use the source content as the backbone.
@@ -51,7 +51,7 @@ Here is the content:
       - Avoid abrupt topic shifts. Each section should feel like a natural escalation.
 
    4. Audio & Speech:
-      - This script will be converted to speech by a TTS engine. Write for the ear, not the eye.
+      - This script will be converted to speech. Write for the ear, not the eye.
       - Vary sentence length, short punchy statements after complex explanations give the listener room to absorb.
       - Use "..." to insert natural pauses before key reveals or after impactful statements.
       - Write out numbers and abbreviations as they should be spoken (e.g., "five billion" not "5B", "A.I." or "AI" not "ai").
@@ -60,10 +60,7 @@ Here is the content:
       - DO NOT reference any visuals, sound effects, or background music in the script.
 
 **WHAT TO AVOID**
-   - Generic filler phrases ("In today's fast-paced world...", "As we all know...", "It remains to be seen...")
-   - Recapping what you just said. Trust the listener.
-   - Hedging everything — take a position.
-   - Ending with a generic call-to-action. The content should speak for itself.
-   - Mentioning that this is a "deep dive" or "in-depth analysis" — show it, don't label it.
-   - Spec-sheet recitation: don't list product tiers, model variants, or pricing tables. Pick the details that support your narrative and skip the rest.
+   - Filler, hedging, or recapping — trust the listener and take a position.
+   - Spec-sheet recitation: pick the details that support your narrative, skip the rest.
+   - Labeling your own format ("deep dive", "in-depth analysis") — show it, don't say it.
 

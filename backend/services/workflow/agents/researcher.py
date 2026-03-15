@@ -1,6 +1,6 @@
 from config import logger
 from typing import List
-from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 from langchain.agents import create_agent
 
@@ -21,17 +21,16 @@ class NewsResearcher:
 
     def __init__(
         self,
-        model_name: str = "claude-sonnet-4-6",
+        model_name: str = "gemini-3-flash-preview",
         temperature: float = 0.3,
     ) -> None:
         self.system_prompt = load_prompt("research_agent")
         
         self.agent = create_agent(
-            model=ChatAnthropic( 
-                model_name=model_name,
+            model=ChatGoogleGenerativeAI( 
+                model=model_name,
                 temperature=temperature,
-                timeout=600,
-                max_tokens_to_sample=8192,
+                timeout=300
             ), #type: ignore
             tools=ALL_RESEARCH_TOOLS,
             system_prompt=self.system_prompt,
@@ -55,7 +54,8 @@ class NewsResearcher:
                 {news_item.text}
             </source_content>
 
-            Use your search tools to gather comprehensive information, then provide well-organized research notes.
+            Use your search tools to gather comprehensive information, 
+            then provide well-organized research notes.
         """
 
     async def research(

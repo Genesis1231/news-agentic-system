@@ -195,7 +195,7 @@ class ModelFactory:
         
         try:
             return ChatAnthropic(
-                model_name=model_name,
+                model=model_name,
                 temperature=temperature,
             )
             

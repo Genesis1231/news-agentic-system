@@ -40,8 +40,8 @@ Evaluate the provided story through the framework to determine if it has excepti
       * If decided NO: State primary rejection reason.
 
    - 'deep_dive':
-      Decide whether this story warrants in-depth research and analysis beyond a flash report.
-         * true: The story is complex, high-impact, or requires multi-source verification. Worth investing in deep research, summarization, and long-form scripting.
+      Decide whether this story warrants in-depth research and analysis.
+         * true: The story is complex, high-impact, or novel to the target audience.
          * false: A quick flash report is sufficient to cover the story.
 
    - 'additional_research': (return [] if 'final_decision' is NO.)

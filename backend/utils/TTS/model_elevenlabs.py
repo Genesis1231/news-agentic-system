@@ -97,11 +97,18 @@ class ElevenLabsClient:
             logger.error(f"Error during text to speech synthesis: {str(e)}")
             return None
 
-    def convert_subtitles(self, alignment: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def convert_subtitles(self, alignment) -> List[Dict[str, Any]]:
         """Convert ElevenLabs alignment data to moviepy-compatible subtitle format."""
-        
-        if not alignment or not isinstance(alignment, Dict):
-            logger.error("Invalid alignment data received")
+
+        if not alignment:
+            logger.error("No alignment data received")
+            return []
+
+        # Convert Pydantic model to dict if needed
+        if hasattr(alignment, 'model_dump'):
+            alignment = alignment.model_dump()
+        elif not isinstance(alignment, dict):
+            logger.error(f"Unexpected alignment type: {type(alignment)}")
             return []
         
         try:
