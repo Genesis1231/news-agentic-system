@@ -35,7 +35,7 @@ Evaluate the provided story through the framework to determine if it has excepti
       * Based on the analysis, decide: 'YES' if we should develop the news, or 'NO' if not.
       * Only select from: ["YES", "NO"]
 
-   - 'editorial_note': 
+   - 'editorial_notes': 
       * If decided YES: Suggest one unique and engaging angle to captivate the target audience on Youtube.
       * If decided NO: State primary rejection reason.
 

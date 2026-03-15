@@ -15,7 +15,10 @@ class Evaluation(BaseModel):
         description="Final decision on content acceptance. YES or NO?",
     )
 
-    editorial_note: str = Field(..., description="Editorial notes.")
+    editorial_notes: list[str] = Field(
+        default_factory=list,
+        description="Editorial notes.",
+    )
 
     deep_dive: bool = Field(
         default=False,
@@ -42,5 +45,14 @@ class Evaluation(BaseModel):
             return [v]
         if isinstance(v, list):
             return v
+        return []
+
+    @field_validator('editorial_notes', mode='before')
+    def validate_editorial_notes(cls, v):
+        """Normalize editorial notes to a list of strings."""
+        if isinstance(v, str):
+            return [v]
+        if isinstance(v, list):
+            return [str(item) for item in v if item]
         return []
         

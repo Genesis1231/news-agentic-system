@@ -93,7 +93,7 @@ class NewsEvaluationNode:
         deep_dive_votes = 0
         evaluation: Dict[str, Any] = {
             "research": [],
-            "editorial_note": [],
+            "editorial_notes": [],
             "deep_dive": False,
         }
 
@@ -116,8 +116,10 @@ class NewsEvaluationNode:
             if research := result.get("additional_research", []):
                 evaluation["research"].extend(research)
 
-            if editorial_note := result.get("editorial_note", ""):
-                evaluation["editorial_note"].append(editorial_note)
+            if notes := result.get("editorial_notes", []):
+                if isinstance(notes, str):
+                    notes = [notes]
+                evaluation["editorial_notes"].extend(notes)
 
         # Majority vote: deep dive if 2+ editors recommend it
         evaluation["deep_dive"] = deep_dive_votes >= 2

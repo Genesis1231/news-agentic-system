@@ -50,6 +50,8 @@ class WritingNode:
             )
         else:
             editorial_notes = state["evaluation"].get("editorial_notes", [])
+            if isinstance(editorial_notes, str):
+                editorial_notes = [editorial_notes]
             
             # log writing in monitor
             await tracker.log(str(raw_id), f"News writer is crafting the {depth} script.")

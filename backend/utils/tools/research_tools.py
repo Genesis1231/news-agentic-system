@@ -17,7 +17,7 @@ def _get_perplexity():
     """Get or create the shared Perplexity client."""
     global _perplexity
     if _perplexity is None:
-        _perplexity = ChatPerplexity(model="sonar-pro", temperature=0.1, timeout=120)
+        _perplexity = ChatPerplexity(model="sonar-pro", temperature=0.1, timeout=300)
     return _perplexity
 
 

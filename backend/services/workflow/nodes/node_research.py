@@ -1,6 +1,5 @@
 from config import logger
 from langgraph.types import Command
-from langgraph.graph import END
 
 from backend.core.redis import tracker
 from backend.services.workflow.state import SubNewsState, NewsStatus
@@ -29,15 +28,8 @@ class ResearchNode:
         )
 
         if not research_notes:
-            await tracker.log(raw_id, "Research agent failed — no results.")
-            return Command(
-                update={
-                    "status": NewsStatus.FAILED,
-                    "error": [{"node": "node_research",
-                               "error_message": "Research agent failed to gather information"}]
-                },
-                goto=END,
-            )
+            await tracker.log(raw_id, "Research agent failed — continuing without research.")
+            return Command(goto="node_write")
 
         await tracker.log(raw_id, f"Research complete. ({len(research_notes)} chars)")
 
