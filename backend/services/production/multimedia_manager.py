@@ -31,17 +31,13 @@ class MultimediaManager:
             logger.error(f"TTS generation failed for news (ID:{news_id})")
             return None
 
-        audio_path, subtitle_path = result
-
-        production_result = {"audio_path": str(audio_path)}
-        if subtitle_path:
-            production_result["subtitle_path"] = str(subtitle_path)
+        audio_path, _ = result
 
         await tracker.log(
             str(news_data.raw_id),
-            f"{news_depth.capitalize()} production completed: {json.dumps(production_result, indent=2)}"
+            f"{news_depth.capitalize()} production completed: {audio_path}"
         )
-        return production_result
+        return {"audio_path": str(audio_path)}
 
     async def shutdown(self) -> None:
         pass

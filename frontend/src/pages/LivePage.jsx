@@ -7,29 +7,57 @@ import AudioParticles from '../components/AudioParticles';
 import Subtitles from '../components/Subtitles';
 import { MOCK_STORIES, CATEGORIES } from '../data/mockStories';
 
+const R2_BASE = 'https://pub-c163d15064354af0a8ac3b349f32512d.r2.dev';
 const CATEGORY_KEYS = new Set(CATEGORIES.map((c) => c.key));
 
-const ALL_TAGS = [
-  ...CATEGORIES.map((c) => ({ label: c.label, value: c.key })),
-  ...[...new Set(MOCK_STORIES.flatMap((s) => s.entities))].sort().map((e) => ({
-    label: e,
-    value: e,
-  })),
-];
-
 const LivePage = () => {
-  const [isPlaying, setIsPlaying] = useState(true); // autoplay
+  const [stories, setStories] = useState(MOCK_STORIES);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [activeFilter, setActiveFilter] = useState('ALL');
-  const [expandedId, setExpandedId] = useState(MOCK_STORIES[0].id);
+  const [expandedId, setExpandedId] = useState(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [audioError, setAudioError] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const audioRef = useRef(null);
 
-  const currentStory = MOCK_STORIES[currentIndex];
+  // Fetch stories from R2, fall back to mock data
+  useEffect(() => {
+    fetch(`${R2_BASE}/stories.json`)
+      .then((res) => {
+        if (!res.ok) throw new Error(res.statusText);
+        return res.json();
+      })
+      .then((data) => {
+        if (data.stories && data.stories.length > 0) {
+          setStories(data.stories);
+          setExpandedId(data.stories[0].id);
+        }
+      })
+      .catch(() => {
+        // Fall back to mock stories
+        setExpandedId(MOCK_STORIES[0].id);
+      });
+  }, []);
+
+  // Set initial expanded on first load
+  useEffect(() => {
+    if (stories.length > 0 && expandedId === null) {
+      setExpandedId(stories[0].id);
+    }
+  }, [stories]);
+
+  const allTags = useMemo(() => [
+    ...CATEGORIES.map((c) => ({ label: c.label, value: c.key })),
+    ...[...new Set(stories.flatMap((s) => s.entities || []))].sort().map((e) => ({
+      label: e,
+      value: e,
+    })),
+  ], [stories]);
+
+  const currentStory = stories[currentIndex] || stories[0];
 
   // Play/pause audio
   useEffect(() => {
@@ -37,7 +65,6 @@ const LivePage = () => {
     if (!audio) return;
     if (isPlaying) {
       audio.play().catch(() => {
-        // Browser blocked autoplay — switch to paused state
         setIsPlaying(false);
       });
     } else {
@@ -45,7 +72,7 @@ const LivePage = () => {
     }
   }, [isPlaying]);
 
-  // Mute/unmute — set imperatively since React doesn't reliably update audio attributes
+  // Mute/unmute
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) audio.muted = isMuted;
@@ -54,7 +81,7 @@ const LivePage = () => {
   // Update audio src when track changes
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !currentStory) return;
     audio.src = currentStory.audio_url;
     audio.load();
     setProgress(0);
@@ -62,7 +89,7 @@ const LivePage = () => {
     if (isPlaying) {
       audio.play().catch(() => {});
     }
-  }, [currentIndex]);
+  }, [currentIndex, currentStory?.audio_url]);
 
   // Audio events
   useEffect(() => {
@@ -76,9 +103,9 @@ const LivePage = () => {
     };
 
     const onEnded = () => {
-      const next = (currentIndex + 1) % MOCK_STORIES.length;
+      const next = (currentIndex + 1) % stories.length;
       setCurrentIndex(next);
-      setExpandedId(MOCK_STORIES[next].id);
+      setExpandedId(stories[next].id);
     };
 
     const onError = () => setAudioError(true);
@@ -94,24 +121,27 @@ const LivePage = () => {
       audio.removeEventListener('error', onError);
       audio.removeEventListener('playing', onPlaying);
     };
-  }, [currentIndex]);
+  }, [currentIndex, stories]);
 
   const toggleExpand = useCallback((id) => {
     setExpandedId((prev) => (prev === id ? null : id));
   }, []);
 
   const feedStories = useMemo(() => {
-    const rest = MOCK_STORIES.filter((s) => s.id !== currentStory.id);
+    if (!currentStory) return [];
+    const rest = stories.filter((s) => s.id !== currentStory.id);
     if (activeFilter === 'ALL') return rest;
-    if (CATEGORY_KEYS.has(activeFilter)) return rest.filter((s) => s.category.includes(activeFilter));
-    return rest.filter((s) => s.entities.includes(activeFilter));
-  }, [activeFilter, currentStory.id]);
+    if (CATEGORY_KEYS.has(activeFilter)) return rest.filter((s) => (s.category || []).includes(activeFilter));
+    return rest.filter((s) => (s.entities || []).includes(activeFilter));
+  }, [activeFilter, currentStory?.id, stories]);
 
   const isLive = isPlaying && !audioError;
 
+  if (!currentStory) return null;
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <audio ref={audioRef} src={MOCK_STORIES[0].audio_url} preload="auto" muted={isMuted} crossOrigin="anonymous" />
+      <audio ref={audioRef} src={currentStory.audio_url} preload="auto" muted={isMuted} crossOrigin="anonymous" />
 
       <nav className="shrink-0 border-b border-white/[0.06] bg-black/60 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between">
@@ -151,7 +181,7 @@ const LivePage = () => {
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{currentStory.title}</p>
-          <p className="text-xs text-purple-400/70">{currentStory.category[0]}</p>
+          <p className="text-xs text-purple-400/70">{(currentStory.category || [])[0]}</p>
         </div>
         <span className="relative flex h-2 w-2 shrink-0">
           {isLive && <span className="absolute inset-0 rounded-full bg-red-500" style={{ animation: 'pulse-ring 1.5s ease-out infinite' }} />}
@@ -213,7 +243,7 @@ const LivePage = () => {
               {/* Now playing info */}
               <div className="flex items-center gap-2.5 mb-3">
                 <span className="px-2.5 py-1 rounded text-xs font-bold tracking-wider uppercase bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                  {currentStory.category[0]}
+                  {(currentStory.category || [])[0]}
                 </span>
               </div>
               <h2 className="text-2xl font-semibold leading-snug">
@@ -230,7 +260,7 @@ const LivePage = () => {
                 className="flex items-center gap-2 flex-wrap overflow-hidden"
                 style={{ maxHeight: filtersExpanded ? 'none' : '4.5rem' }}
               >
-                {ALL_TAGS.map(({ label, value }) => (
+                {allTags.map(({ label, value }) => (
                   <button
                     key={value}
                     onClick={() => setActiveFilter(value)}
@@ -268,7 +298,7 @@ const LivePage = () => {
                       <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                       NOW PLAYING
                     </span>
-                    {currentStory.category.map((cat) => (
+                    {(currentStory.category || []).map((cat) => (
                       <span key={cat}><span className="text-zinc-800 mx-1">|</span>{cat.toLowerCase()}</span>
                     ))}
                   </div>
@@ -293,7 +323,7 @@ const LivePage = () => {
                 )}
 
                 {(showAll ? feedStories : feedStories.slice(0, 5)).map((story) => {
-                  const time = format(new Date(story.published_at), 'HH:mm');
+                  const time = story.published_at ? format(new Date(story.published_at), 'HH:mm') : '';
                   const isExpanded = expandedId === story.id;
 
                   return (
@@ -304,7 +334,7 @@ const LivePage = () => {
                     >
                       <div className="flex items-center gap-2 mb-2 text-xs text-zinc-600 capitalize">
                         <span className="font-mono">{time}</span>
-                        {story.category.map((cat) => (
+                        {(story.category || []).map((cat) => (
                           <span key={cat}><span className="text-zinc-800 mx-1">|</span>{cat.toLowerCase()}</span>
                         ))}
                       </div>

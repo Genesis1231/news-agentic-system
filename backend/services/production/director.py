@@ -78,7 +78,7 @@ class ProductionDirector:
                 await tracker.log(raw_id, f"Production failed for news (ID:{news_id}).")
                 return
 
-            # Upload TTS audio to R2
+            # Upload TTS audio (+ companion subtitle JSON) to R2
             audio_url = await self.r2_uploader.upload_audio(production_result["audio_path"])
             if audio_url:
                 production_result["audio_path"] = audio_url
